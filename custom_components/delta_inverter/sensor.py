@@ -2,6 +2,10 @@
 from homeassistant.helpers.entity import Entity
 import serial
 import struct
+import logging
+
+
+logger = logging.getLogger(__name__)
 
 def setup_platform(hass, config, add_entities, discovery_info=None):
     # Add devices
@@ -148,6 +152,9 @@ class DeltaInverterSensor(Entity):
         # Read response
         response = ser.read(200)  # Increase the number of bytes to read
         ser.close()
+
+        logger.info('responseee %s', str(response))
+        logger.debug('response %s', str(response))
 
         return response
 
