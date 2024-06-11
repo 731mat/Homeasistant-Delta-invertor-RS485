@@ -1,0 +1,7 @@
+# Example service to refresh data manually
+refresh_data:
+  description: Refresh data from the Delta Inverter.
+  fields:
+    entity_id:
+      description: The entity_id of the sensor to refresh.
+      example: sensor.delta_inverter

@@ -1,0 +1,8 @@
+{
+  "domain": "delta_inverter",
+  "name": "Delta Inverter",
+  "documentation": "https://example.com",
+  "dependencies": [],
+  "codeowners": ["@yourusername"],
+  "requirements": []
+}
