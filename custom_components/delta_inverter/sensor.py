@@ -153,6 +153,9 @@ class DeltaInverterSensor(Entity):
 
     def parse_response(self, response):
 
+        if response.len < 3:
+            return 99999, []
+            
         data_length = response[3]
         data = response[4:data_length+4]
 
