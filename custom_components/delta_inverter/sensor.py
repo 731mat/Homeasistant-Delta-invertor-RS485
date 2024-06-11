@@ -135,7 +135,7 @@ class DeltaInverterSensor(Entity):
 
         return frame
 
-    def send_query(self, port, baudrate, address, command, sub_command):
+    def send_query(self, port, baudrate, address, command, sub_command, data=b''):
         # Open serial port
         ser = serial.Serial(port, baudrate, bytesize=8, parity='N', stopbits=1, timeout=1)
 
