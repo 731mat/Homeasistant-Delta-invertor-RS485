@@ -36,7 +36,7 @@ class DeltaInverterSensor(Entity):
         response = self.send_query(port, baudrate, address, command, sub_command)
         self._state, self._attributes = self.parse_response(response)
 
-    def parse_data(data):
+    def parse_data(self, data):
         results = {}
         results['SAP Part Number'] = data[0:11].decode('utf-8').strip()
         results['SAP Serial Number'] = data[11:29].decode('utf-8').strip()
@@ -102,7 +102,7 @@ class DeltaInverterSensor(Entity):
 
         return results    
 
-    def calc_crc(data):
+    def calc_crc(self, data):
         crc = 0x0000
         for pos in data:
             crc ^= pos
@@ -126,7 +126,7 @@ class DeltaInverterSensor(Entity):
             'B', sub_command) + data
 
         # Calculate CRC
-        crc = calc_crc(frame[1:])  # Exclude the first byte (STX) from CRC calculation
+        crc = self.calc_crc(frame[1:])  # Exclude the first byte (STX) from CRC calculation
         crc_low = crc & 0xFF
         crc_high = (crc >> 8) & 0xFF
 
@@ -153,7 +153,7 @@ class DeltaInverterSensor(Entity):
 
     def parse_response(self, response):
 
-        parsed_data = parse_data(data)
+        parsed_data = self.parse_data(data)
         state = parsed_data['AC Power']
         attributes = parsed_data
         return state, attributes
