@@ -153,6 +153,9 @@ class DeltaInverterSensor(Entity):
 
     def parse_response(self, response):
 
+        data_length = response[3]
+        data = response[4:data_length+4]
+
         parsed_data = self.parse_data(data)
         state = parsed_data['AC Power']
         attributes = parsed_data
