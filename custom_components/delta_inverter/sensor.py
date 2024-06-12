@@ -169,5 +169,5 @@ class DeltaInverterSensor(Entity):
 
         parsed_data = self.parse_data(data)
         state = parsed_data['AC Power']
-        attributes = json.dumps(parsed_data)
+        attributes = parsed_data
         return state, attributes
