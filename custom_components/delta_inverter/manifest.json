@@ -8,5 +8,4 @@
   "codeowners": ["@731mat"],
   "requirements": [],
   "version": "1.0.0",
-  "config_flow": true,
 }
