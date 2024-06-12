@@ -41,7 +41,7 @@ class DeltaInverterSensor(Entity):
         response = self.send_query(port, baudrate, address, command, sub_command)
         self._state, self._attributes = self.parse_response(response)
 
-    def parse_data(data):
+    def parse_data(self,data):
         results = {}
         idx = 6  # Začátek dat za hlavičkou protokolu
         results['SAP Part Number'] = data[idx:idx+11].decode('utf-8').strip()
@@ -323,7 +323,7 @@ class DeltaInverterSensor(Entity):
         data_length = response[3]
         data = response[4:data_length+4]
 
-        parsed_data = self.parse_data(data)
+        parsed_data = self.parse_data(response)
         state = parsed_data['AC Power']
         attributes = parsed_data
         return state, attributes
