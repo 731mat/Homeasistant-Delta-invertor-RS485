@@ -106,3 +106,63 @@ Contributions to this project are welcome. You can contribute by:
 
 
 This project is licensed under the MIT License - see the LICENSE file for details.
+
+
+```python
+import struct
+
+def parse_data(data):
+    results = {}
+    idx = 6  # Začátek dat za hlavičkou protokolu
+    results['SAP Part Number'] = data[idx:idx+11].decode('utf-8').strip()
+    idx += 11
+    results['SAP Serial Number'] = data[idx:idx+18].decode('utf-8').strip()
+    idx += 18
+    results['SAP Date Code'] = struct.unpack('>I', data[idx:idx+4])[0]
+    idx += 4
+    results['SAP Revision'] = struct.unpack('>H', data[idx:idx+2])[0]
+    idx += 2
+    results['Software Revision AC Control'] = struct.unpack('>H', data[idx:idx+2])[0]
+    idx += 2
+    results['Software Revision DC Control'] = struct.unpack('>H', data[idx:idx+2])[0]
+    idx += 2
+    results['Software Revision Display'] = struct.unpack('>H', data[idx:idx+2])[0]
+    idx += 2
+    results['Software Revision ENS Control'] = struct.unpack('>H', data[idx:idx+2])[0]
+    idx += 2
+    results['Solar Current at Input 1'] = struct.unpack('>H', data[idx:idx+2])[0] / 10
+    idx += 2
+    results['Solar Voltage at Input 1'] = struct.unpack('>H', data[idx:idx+2])[0] / 10
+    idx += 2
+    results['Solar Isolation Resistance at Input 1'] = struct.unpack('>H', data[idx:idx+2])[0]
+    idx += 2
+    results['Solar Current at Input 2'] = struct.unpack('>H', data[idx:idx+2])[0] / 10
+    idx += 2
+    results['Solar Voltage at Input 2'] = struct.unpack('>H', data[idx:idx+2])[0] / 10
+    idx += 2
+    results['Solar Isolation Resistance at Input 2'] = struct.unpack('>H', data[idx:idx+2])[0]
+    idx += 2
+    results['AC Current'] = struct.unpack('>H', data[idx:idx+2])[0] / 10
+    idx += 2
+    results['AC Voltage'] = struct.unpack('>H', data[idx:idx+2])[0] / 10
+    idx += 2
+    results['AC Power'] = struct.unpack('>H', data[idx:idx+2])[0]
+    idx += 2
+    results['AC Frequency'] = struct.unpack('>H', data[idx:idx+2])[0] / 100
+    idx += 2
+  
+    ## and more 
+
+    return results
+
+
+# Předpokládáme, že 'data' je bajtové pole obsahující celou zprávu
+data_string = b"\x02\x06\x01\xa1`\x01EOE46020145113144101003000250100310\x02\x00\x02\x00\x02\x00\x02\x00\x00\x00\x01]'\x10\x00\x00\x01['\x10\x00\x00\x00\x01\x00\x00\x00\x00\x00\x8a\x000\x00%\x00\x00\x00\x00\x00)\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x05\x01k\x00\xa2\x00\x01'\x10\x00\x05\x01i\x00\x9f'\x10'\x10\x00\x0b\x00\x01\x01\x18\x00\xed\x00\x00\x13\x92\x00\x00\x00\x01\x00\x00\x00\x00\x00\x00\x00\x01\x88\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xde\x18\x03"
+
+# Váš popis začíná číst data od 7. bajtu, takže začneme indexovat od 6 a přečteme 11 bajtů
+sap_part_number = data_string[6:6+11].decode('utf-8').strip()
+
+print("SAP Part Number:", sap_part_number)
+
+print(parse_data(data_string))
+```
