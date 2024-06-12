@@ -102,7 +102,7 @@ class DeltaInverterSensor(Entity):
         results['Internal Bulk Failure'] = data[140]
         results['Internal Communications Failure'] = data[141]
         results['AC Hardware Disturbance'] = data[142]
-        results['History Status Messages'] = data[143:163]
+        #results['History Status Messages'] = data[143:163]
 
         return results    
 
@@ -168,5 +168,5 @@ class DeltaInverterSensor(Entity):
 
         parsed_data = self.parse_data(data)
         state = parsed_data['AC Power']
-        attributes = parsed_data
+        attributes = json.dumps(parsed_data)
         return state, attributes
