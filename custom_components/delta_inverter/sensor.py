@@ -3,6 +3,7 @@ from homeassistant.helpers.entity import Entity
 import serial
 import struct
 import logging
+import json
 
 
 logger = logging.getLogger(__name__)
