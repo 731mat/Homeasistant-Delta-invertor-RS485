@@ -16,20 +16,12 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
         for device_config in config['delta_inverter']['devices']:
             device = DeltaInverterDevice(hass, device_config)
             hass.data['delta_inverter'][device_config['name']] = device
-            await device.start()  # Asynchronní funkce pro zahájení aktualizaci
+            device.start()
     except Exception as e:
         _LOGGER.error("Error setting up Delta Inverter devices: %s", e)
         return False  # Přidáno pro lepší zpracování chyb  
 
     return True
-
-
-async def async_setup_entry(hass: HomeAssistant, entry):
-    _LOGGER.info("Setting up Delta Inverter from config entry")
-    device = DeltaInverterDevice(hass, entry.data)
-    hass.data.setdefault('delta_inverter', {})[entry.entry_id] = device
-    device.start()
-    return True    
 
 
 
