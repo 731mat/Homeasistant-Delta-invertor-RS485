@@ -18,7 +18,6 @@ def setup_platform(hass, config, add_entities, discovery_info=None):
     entities = []
     for device_name, device in devices.items():
         entity = DeltaInverterSensor(device)
-        device.entities.append(entity)
         entities.append(entity)
     add_entities(entities, True)
 
@@ -37,6 +36,13 @@ class DeltaInverterSensor(Entity):
         self._state = state
         self._attributes = attributes
         self.async_write_ha_state()  # Informuje Home Assistant o změně stavu
+
+    def update(self):
+        _LOGGER.debug("Updating Delta Inverter Sensor")
+        """Aktualizace stavu entity."""
+        self._state, self._attributes = self._device.get_status()
+        if self._state is None:
+            _LOGGER.error("Failed to update sensor") 
 
     @property
     def name(self):
@@ -75,7 +81,7 @@ class DeltaInverterDevice:
     def start(self):
         """Spuštění zařízení pro pravidelné aktualizace."""
         _LOGGER.info(f"Starting DeltaInverterDevice for {self.name}")
-        self.hass.async_add_job(self.update_data())
+        self.hass.async_create_task(self.update_data())
 
 
     async def update_data(self, now=None):
