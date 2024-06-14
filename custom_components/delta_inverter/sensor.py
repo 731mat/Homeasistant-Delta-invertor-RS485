@@ -13,7 +13,7 @@ import asyncio
 
 _LOGGER = logging.getLogger(__name__)
 
-def setup_platform(hass, config, add_entities, discovery_info=None):
+def async_setup_platform(hass, config, async_add_entities, discovery_info=None):
     _LOGGER.debug("Setting up platform for Delta Inverter")
 
     devices = hass.data['delta_inverter']['my_device']
@@ -85,7 +85,7 @@ def setup_platform(hass, config, add_entities, discovery_info=None):
         entities.append(DeltaInverterSensor(device, key, key, params["unit"], params["device_class"]))
         device.entities.append(entity)  # Přidání entity do seznamu entit zařízení
 
-    add_entities(entities, True)
+    async_add_entities(entities, True)
 
 
 class DeltaInverterSensor(Entity):

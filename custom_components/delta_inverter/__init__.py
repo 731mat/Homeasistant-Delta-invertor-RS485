@@ -26,6 +26,11 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
         _LOGGER.error("Error setting up Delta Inverter devices: %s", e)
         return False  # Přidáno pro lepší zpracování chyb  
 
+    # Explicitní volání platformy pro senzory
+    hass.async_create_task(
+        async_load_platform(hass, 'sensor', 'delta_inverter', config['delta_inverter'], config)
+    )    
+
     return True
 
 
