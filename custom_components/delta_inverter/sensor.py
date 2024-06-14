@@ -15,7 +15,7 @@ def setup_platform(hass, config, add_entities, discovery_info=None):
     entities = []
     for device_name, device in devices.items():
         entities.append(DeltaInverterSensor(device))
-    add_entities(entities)
+    add_entities(entities, True)
 
 
 class DeltaInverterSensor(Entity):
@@ -23,7 +23,10 @@ class DeltaInverterSensor(Entity):
         self._device = device
         self._state = None
         self._attributes = {}
-        self._device.register_entity(self)
+
+    @property
+    def should_poll(self):
+        return False  # Zajistěte, že polling je vypnutý, pokud stav aktualizuje zařízení
 
     def update_state(self, state, attributes):
         self._state = state
