@@ -57,7 +57,12 @@ class DeltaInverterDevice:
         self.baudrate = config.get('baudrate')
         self.address = config.get('address')
         self.entities = []
-        self.scan_interval = config.get('scan_interval', 60)
+        
+        # Zkontrolujte, že scan_interval je číslo a převeďte ho na timedelta
+        scan_interval = config.get('scan_interval', 60)  # získáte číslo v sekundách
+        self.scan_interval = timedelta(seconds=scan_interval)  # převeďte na timedelta
+
+
         self.running = True  # Inicializujeme proměnnou pro běh smyčky
 
         # Naplánování pravidelné aktualizace

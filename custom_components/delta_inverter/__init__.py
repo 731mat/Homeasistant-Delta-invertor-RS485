@@ -24,6 +24,14 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     return True
 
 
+async def async_setup_entry(hass: HomeAssistant, entry):
+    _LOGGER.info("Setting up Delta Inverter from config entry")
+    device = DeltaInverterDevice(hass, entry.data)
+    hass.data.setdefault('delta_inverter', {})[entry.entry_id] = device
+    device.start()
+    return True    
+
+
 
 
 # import logging
