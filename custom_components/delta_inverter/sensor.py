@@ -1,5 +1,6 @@
 # sensor.py
 from homeassistant.helpers.entity import Entity
+from homeassistant.helpers.event import async_track_time_interval
 
 import serial
 import struct
@@ -14,7 +15,9 @@ def setup_platform(hass, config, add_entities, discovery_info=None):
     devices = hass.data['delta_inverter']
     entities = []
     for device_name, device in devices.items():
-        entities.append(DeltaInverterSensor(device))
+        entity = DeltaInverterSensor(device)
+        device.entities.append(entity)
+        entities.append(entity)
     add_entities(entities, True)
 
 
@@ -57,32 +60,30 @@ class DeltaInverterDevice:
         self.scan_interval = config.get('scan_interval', 60)
         self.running = True  # Inicializujeme proměnnou pro běh smyčky
 
-    async def start(self):
-        """Spustí asynchronní aktualizační smyčku."""
-        self.hass.async_create_task(self.update_data())
+        # Naplánování pravidelné aktualizace
+        self.update_interval = async_track_time_interval(
+            self.hass, self.update_data, self.scan_interval
+        )
 
-    async def update_data(self):
-        try:
-            while self.running:  # Smyčka běží, dokud je `self.running` True
-                data = self.send_query()
-                state, attributes = self.parse_response(data)
-                for entity in self.entities:
-                    entity.update_state(state, attributes)
-                await asyncio.sleep(self.scan_interval)
-        except Exception as e:
-            _LOGGER.error("Error updating data: %s", e)
-            self.running = False
-        finally:
-            _LOGGER.info("Stopping update data loop")
+    def start(self):
+        """Spuštění zařízení pro pravidelné aktualizace."""
+        _LOGGER.info(f"Starting DeltaInverterDevice for {self.name}")
+        self.hass.async_add_job(self.update_data())
 
-    def stop(self):
-        """Zastaví asynchronní aktualizační smyčku."""
-        self.running = False
 
-    async def async_will_remove_from_hass(self):
-        """Metoda volaná, když je entita odstraňována z Home Assistant."""
-        self.stop()
+    async def update_data(self, now=None):
+        """Získá data ze zařízení a aktualizuje entity."""
+        data = self.send_query()
+        if data is not None:
+            state, attributes = self.parse_response(data)
+            for entity in self.entities:
+                entity.update_state(state, attributes)
 
+
+    def async_will_remove_from_hass(self):
+        """Odstranění časovače při odstranění zařízení z HA."""
+        self.update_interval()  # Zrušení naplánované aktualizace
+            
 
     def send_query(self):
         with serial.Serial(self.port, self.baudrate, timeout=10) as ser:
