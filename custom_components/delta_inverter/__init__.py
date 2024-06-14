@@ -4,6 +4,8 @@ import logging
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.typing import ConfigType
 
+from .sensor import DeltaInverterDevice
+
 _LOGGER = logging.getLogger(__name__)
 
 def setup(hass: HomeAssistant, config: ConfigType):

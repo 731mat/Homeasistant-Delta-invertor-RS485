@@ -1,7 +1,9 @@
+# sensor.py
 from homeassistant.helpers.entity import Entity
 import serial
 import struct
 import logging
+
 
 _LOGGER = logging.getLogger(__name__)
 
