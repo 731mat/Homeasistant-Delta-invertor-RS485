@@ -14,11 +14,18 @@ def setup_platform(hass, config, add_entities, discovery_info=None):
         entities.append(DeltaInverterSensor(device))
     add_entities(entities)
 
+
 class DeltaInverterSensor(Entity):
     def __init__(self, device):
         self._device = device
         self._state = None
         self._attributes = {}
+        self._device.register_entity(self)
+
+    def update_state(self, state, attributes):
+        self._state = state
+        self._attributes = attributes
+        self.async_write_ha_state()  # Informuje Home Assistant o změně stavu
 
     @property
     def name(self):
@@ -32,9 +39,6 @@ class DeltaInverterSensor(Entity):
     def extra_state_attributes(self):
         return self._attributes
 
-    def update(self):
-        response = self._device.send_query()
-        self._state, self._attributes = self._device.parse_response(response)
 
 class DeltaInverterDevice:
     def __init__(self, hass, config):
@@ -43,6 +47,25 @@ class DeltaInverterDevice:
         self.port = config['port']
         self.baudrate = config['baudrate']
         self.address = config['address']
+        self.entities = []
+        self.scan_interval = config.get('scan_interval', 60)  # Výchozí je 60 sekund
+
+        self.loop = asyncio.get_event_loop()
+        self.loop.create_task(self.update_data())
+
+
+    async def update_data(self):
+        while True:
+            data = self.send_query()
+            state, attributes = self.parse_response(data)
+            for entity in self.entities:
+                entity.update_state(state, attributes)
+            await asyncio.sleep(self.scan_interval)  # čekáme na další aktualizaci
+
+
+    def register_entity(self, entity):
+        self.entities.append(entity)
+
 
     def send_query(self):
         with serial.Serial(self.port, self.baudrate, timeout=1) as ser:

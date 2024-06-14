@@ -9,11 +9,21 @@ from .sensor import DeltaInverterDevice
 _LOGGER = logging.getLogger(__name__)
 
 def setup(hass: HomeAssistant, config: ConfigType):
+    if 'delta_inverter' not in config:
+        _LOGGER.error("DeltaInverter configuration missing in configuration.yaml")
+        return False  # Přidáno pro lepší zpracování chyb
+
     hass.data['delta_inverter'] = {}
-    for device_config in config['delta_inverter']['devices']:
-        device = DeltaInverterDevice(hass, device_config)
-        hass.data['delta_inverter'][device_config['name']] = device
+    try:
+        for device_config in config['delta_inverter']['devices']:
+            device = DeltaInverterDevice(hass, device_config)
+            hass.data['delta_inverter'][device_config['name']] = device
+    except Exception as e:
+        _LOGGER.error("Error setting up Delta Inverter devices: %s", e)
+        return False  # Přidáno pro lepší zpracování chyb
+
     return True
+
 
 
 
