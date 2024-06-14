@@ -16,8 +16,10 @@ _LOGGER = logging.getLogger(__name__)
 def async_setup_platform(hass, config, async_add_entities, discovery_info=None):
     _LOGGER.debug("Setting up platform for Delta Inverter")
 
-    devices = hass.data['delta_inverter']['my_device']
-    entities = []
+     # Ensure all devices are correctly accessed
+    if 'delta_inverter' not in hass.data:
+        _LOGGER.error("DeltaInverter data not found in hass.data")
+        return
 
     measurements = {
         "SAP Part Number": {"unit": "", "device_class": None},
@@ -80,10 +82,17 @@ def async_setup_platform(hass, config, async_add_entities, discovery_info=None):
         "AC Hardware Disturbance": {"unit": "", "device_class": None}
     }
 
-    for key, params in measurements.items():
-        _LOGGER.debug("Adding entity for device: %s", key)
-        entities.append(DeltaInverterSensor(device, key, key, params["unit"], params["device_class"]))
-        device.entities.append(entity)  # Přidání entity do seznamu entit zařízení
+
+    entities = []
+
+     # Loop over each device stored in hass.data
+    entities = []
+    for device_name, device in hass.data['delta_inverter'].items():
+        _LOGGER.debug(f"Setting up sensor for device: {device_name}")
+        for key, params in measurements.items():
+            _LOGGER.debug("Adding entity for device: %s", key)
+            entities.append(DeltaInverterSensor(device, key, key, params["unit"], params["device_class"]))
+            device.entities.append(entity)  # Přidání entity do seznamu entit zařízení
 
     async_add_entities(entities, True)
 
@@ -223,7 +232,7 @@ class DeltaInverterDevice:
 
 
 
-        
+
 
     def async_will_remove_from_hass(self):
         """Odstranění časovače při odstranění zařízení z HA."""
