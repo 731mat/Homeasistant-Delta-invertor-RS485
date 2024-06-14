@@ -91,7 +91,8 @@ def async_setup_platform(hass, config, async_add_entities, discovery_info=None):
         _LOGGER.debug(f"Setting up sensor for device: {device_name}")
         for key, params in measurements.items():
             _LOGGER.debug("Adding entity for device: %s", key)
-            entities.append(DeltaInverterSensor(device, key, key, params["unit"], params["device_class"]))
+            entity = DeltaInverterSensor(device, key, key, params["unit"], params["device_class"])
+            entities.append(entity)
             device.entities.append(entity)  # Přidání entity do seznamu entit zařízení
 
     async_add_entities(entities, True)
