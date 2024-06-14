@@ -9,6 +9,21 @@ import logging
 
 _LOGGER = logging.getLogger(__name__)
 
+async def async_setup_platform(hass, config, async_add_entities, discovery_info=None):
+    if 'delta_inverter' not in hass.data:
+        _LOGGER.error("DeltaInverter data not found in hass.data")
+        return False
+
+    entities = []
+    for device_name, device in hass.data['delta_inverter'].items():
+        for measurement, params in measurements.items():
+            entity = DeltaInverterSensor(device, measurement, **params)
+            entities.append(entity)
+
+    async_add_entities(entities, True)
+    return True
+    
+
 def setup_platform(hass, config, add_entities, discovery_info=None):
     """Setup platform."""
     _LOGGER.debug("Setting up platform for Delta Inverter")
@@ -276,15 +291,6 @@ class DeltaInverterDevice:
         idx += 1
 
         return results     
-
-async def async_setup(hass, config):
-    """Setup function for the integration."""
-    hass.data['delta_inverter'] = {}
-    # Assuming config is read from configuration.yaml or other setup
-    for device_config in config['delta_inverter'].get('devices', []):
-        device = DeltaInverterDevice(hass, **device_config)
-        hass.data['delta_inverter'][device.name] = device
-    return True
 
 
 
