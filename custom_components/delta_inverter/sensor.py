@@ -85,6 +85,40 @@ class DeltaInverterDevice:
             self.hass, self.update_data, self.scan_interval
         )
 
+    def calc_crc(self, data):
+        crc = 0x0000
+        for pos in data:
+            crc ^= pos
+            for _ in range(8):
+                if (crc & 0x0001) != 0:
+                    crc >>= 1
+                    crc ^= 0xA001
+                else:
+                    crc >>= 1
+        return crc
+
+
+    def create_query(self, address, command, sub_command, data=b''):
+        stx = 0x02
+        enq = 0x05
+        etx = 0x03
+
+        # Construct the frame without CRC
+        frame = struct.pack('BB', stx, enq) + struct.pack('B', address) + struct.pack('B', len(data) + 2) + struct.pack('B',
+                                                                                                                        command) + struct.pack(
+            'B', sub_command) + data
+
+        # Calculate CRC
+        crc = self.calc_crc(frame[1:])  # Exclude the first byte (STX) from CRC calculation
+        crc_low = crc & 0xFF
+        crc_high = (crc >> 8) & 0xFF
+
+        # Construct the final frame with CRC
+        frame += struct.pack('BB', crc_low, crc_high) + struct.pack('B', etx)
+
+        return frame
+
+
     def start(self):
         """Spuštění zařízení pro pravidelné aktualizace."""
         _LOGGER.info(f"Starting DeltaInverterDevice for {self.name}")
@@ -109,9 +143,14 @@ class DeltaInverterDevice:
             
 
     def send_query(self):
+
+        address = 1
+        command = 96
+        sub_command = 1
+        data=b''
+
         with serial.Serial(self.port, self.baudrate, timeout=10) as ser:
-            # Example: send a specific command; adjust as needed
-            query = b'\x01\x03\x00\x00\x00\x0A\xC5\xCD'
+            query = self.create_query(address, command, sub_command, data)
             ser.write(query)
             return ser.read(200)
 
