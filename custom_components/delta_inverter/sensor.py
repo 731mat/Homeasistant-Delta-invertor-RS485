@@ -71,6 +71,7 @@ class DeltaInverterDevice:
                 await asyncio.sleep(self.scan_interval)
         except Exception as e:
             _LOGGER.error("Error updating data: %s", e)
+            self.running = False
         finally:
             _LOGGER.info("Stopping update data loop")
 
@@ -81,10 +82,10 @@ class DeltaInverterDevice:
     async def async_will_remove_from_hass(self):
         """Metoda volaná, když je entita odstraňována z Home Assistant."""
         self.stop()
-        
+
 
     def send_query(self):
-        with serial.Serial(self.port, self.baudrate, timeout=1) as ser:
+        with serial.Serial(self.port, self.baudrate, timeout=10) as ser:
             # Example: send a specific command; adjust as needed
             query = b'\x01\x03\x00\x00\x00\x0A\xC5\xCD'
             ser.write(query)
