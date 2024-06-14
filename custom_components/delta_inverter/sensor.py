@@ -19,11 +19,12 @@ def setup_platform(hass, config, add_entities, discovery_info=None):
     devices = hass.data['delta_inverter']
     entities = []
     for device_name, device in devices.items():
-        
+
         _LOGGER.debug("Adding entity for device: %s", device_name)
 
         entity = DeltaInverterSensor(device)
         entities.append(entity)
+        device.entities.append(entity)  # Přidání entity do seznamu entit zařízení
     add_entities(entities, True)
 
 
@@ -51,7 +52,8 @@ class DeltaInverterSensor(Entity):
 
     @property
     def name(self):
-        return self._device.name
+        """Název entity."""
+        return f"{self._device.name} Sensor"
 
     @property
     def state(self):
@@ -91,12 +93,15 @@ class DeltaInverterDevice:
 
     async def update_data(self, now=None):
         """Získá data ze zařízení a aktualizuje entity."""
+        _LOGGER.debug("Running update_data for %s", self.name)
         data = self.send_query()
         if data is not None:
+            _LOGGER.debug("Data received from device: %s", data)
             state, attributes = self.parse_response(data)
             for entity in self.entities:
                 entity.update_state(state, attributes)
-
+        else:
+            _LOGGER.error("No data received from the device")
 
     def async_will_remove_from_hass(self):
         """Odstranění časovače při odstranění zařízení z HA."""
