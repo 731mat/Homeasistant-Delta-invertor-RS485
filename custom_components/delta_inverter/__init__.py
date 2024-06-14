@@ -1,6 +1,7 @@
 # __init__.py
 import logging
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.discovery import async_load_platform
 from .sensor import DeltaInverterDevice
 
 _LOGGER = logging.getLogger(__name__)
