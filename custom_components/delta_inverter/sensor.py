@@ -55,20 +55,33 @@ class DeltaInverterDevice:
         self.address = config.get('address')
         self.entities = []
         self.scan_interval = config.get('scan_interval', 60)
-
+        self.running = True  # Inicializujeme proměnnou pro běh smyčky
 
     async def start(self):
-        """ Spustí asynchronní aktualizační smyčku. """
+        """Spustí asynchronní aktualizační smyčku."""
         self.hass.async_create_task(self.update_data())
 
     async def update_data(self):
-        while True:
-            data = self.send_query()
-            state, attributes = self.parse_response(data)
-            for entity in self.entities:
-                entity.update_state(state, attributes)
-            await asyncio.sleep(self.scan_interval)  # čekáme na další aktualizaci
+        try:
+            while self.running:  # Smyčka běží, dokud je `self.running` True
+                data = self.send_query()
+                state, attributes = self.parse_response(data)
+                for entity in self.entities:
+                    entity.update_state(state, attributes)
+                await asyncio.sleep(self.scan_interval)
+        except Exception as e:
+            _LOGGER.error("Error updating data: %s", e)
+        finally:
+            _LOGGER.info("Stopping update data loop")
 
+    def stop(self):
+        """Zastaví asynchronní aktualizační smyčku."""
+        self.running = False
+
+    async def async_will_remove_from_hass(self):
+        """Metoda volaná, když je entita odstraňována z Home Assistant."""
+        self.stop()
+        
 
     def send_query(self):
         with serial.Serial(self.port, self.baudrate, timeout=1) as ser:
