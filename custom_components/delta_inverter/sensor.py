@@ -46,16 +46,17 @@ class DeltaInverterSensor(Entity):
 class DeltaInverterDevice:
     def __init__(self, hass, config):
         self.hass = hass
-        self.name = config['name']
-        self.port = config['port']
-        self.baudrate = config['baudrate']
-        self.address = config['address']
+        self.name = config.get('name')
+        self.port = config.get('port')
+        self.baudrate = config.get('baudrate')
+        self.address = config.get('address')
         self.entities = []
-        self.scan_interval = config.get('scan_interval', 60)  # Výchozí je 60 sekund
+        self.scan_interval = config.get('scan_interval', 60)
 
-        self.loop = asyncio.get_event_loop()
-        self.loop.create_task(self.update_data())
 
+    async def start(self):
+        """ Spustí asynchronní aktualizační smyčku. """
+        self.hass.async_create_task(self.update_data())
 
     async def update_data(self):
         while True:
@@ -64,10 +65,6 @@ class DeltaInverterDevice:
             for entity in self.entities:
                 entity.update_state(state, attributes)
             await asyncio.sleep(self.scan_interval)  # čekáme na další aktualizaci
-
-
-    def register_entity(self, entity):
-        self.entities.append(entity)
 
 
     def send_query(self):
