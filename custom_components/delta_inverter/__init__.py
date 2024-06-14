@@ -7,9 +7,14 @@ _LOGGER = logging.getLogger(__name__)
 
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:
 
+    _LOGGER.debug("Starting setup of delta_inverter")
+
     if 'delta_inverter' not in config:
         _LOGGER.error("DeltaInverter configuration missing in configuration.yaml")
         return False  # Přidáno pro lepší zpracování chyb
+
+    _LOGGER.debug("DeltaInverter configuration found: %s", config['delta_inverter'])
+
 
     hass.data['delta_inverter'] = {}
     try:

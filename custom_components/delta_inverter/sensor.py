@@ -14,9 +14,14 @@ import asyncio
 _LOGGER = logging.getLogger(__name__)
 
 def setup_platform(hass, config, add_entities, discovery_info=None):
+    _LOGGER.debug("Setting up platform for Delta Inverter")
+
     devices = hass.data['delta_inverter']
     entities = []
     for device_name, device in devices.items():
+        
+        _LOGGER.debug("Adding entity for device: %s", device_name)
+
         entity = DeltaInverterSensor(device)
         entities.append(entity)
     add_entities(entities, True)
