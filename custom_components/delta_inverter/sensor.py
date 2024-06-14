@@ -1,11 +1,13 @@
 # sensor.py
 from homeassistant.helpers.entity import Entity
 from homeassistant.helpers.event import async_track_time_interval
+from datetime import timedelta
 
 import serial
 import struct
 import logging
 import asyncio
+
 
 
 
