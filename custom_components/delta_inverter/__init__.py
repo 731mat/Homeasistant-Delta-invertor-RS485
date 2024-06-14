@@ -2,6 +2,7 @@
 import logging
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.discovery import async_load_platform
+from homeassistant.exceptions import PlatformNotReady
 from .sensor import DeltaInverterDevice
 
 _LOGGER = logging.getLogger(__name__)
@@ -26,7 +27,7 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
             
             device = DeltaInverterDevice(hass, name, port, baudrate, address, scan_interval)
             hass.data['delta_inverter'][name] = device
-            device.start()
+            await device.start()  # Volání start metody je asynchronní
 
         # Explicitní volání platformy pro senzory
         hass.async_create_task(
@@ -37,6 +38,7 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
         raise PlatformNotReady from e
 
     return True
+
 
 
 

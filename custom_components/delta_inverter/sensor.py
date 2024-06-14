@@ -1,8 +1,7 @@
-# sensor.py
+import asyncio
+from datetime import timedelta
 from homeassistant.helpers.entity import Entity
 from homeassistant.helpers.event import async_track_time_interval
-from datetime import timedelta
-
 import serial
 import struct
 import logging
@@ -16,28 +15,15 @@ async def async_setup_platform(hass, config, async_add_entities, discovery_info=
 
     entities = []
     for device_name, device in hass.data['delta_inverter'].items():
-        for measurement, params in measurements.items():
-            entity = DeltaInverterSensor(device, measurement, **params)
-            entities.append(entity)
-
-    async_add_entities(entities, True)
-    return True
-    
-
-def setup_platform(hass, config, add_entities, discovery_info=None):
-    """Setup platform."""
-    _LOGGER.debug("Setting up platform for Delta Inverter")
-    devices = hass.data.get('delta_inverter', {})
-    entities = []
-
-    for device_name, device in devices.items():
         for measurement in device.measurements:
             entity = DeltaInverterSensor(device, measurement)
             entities.append(entity)
-    add_entities(entities)
+        await device.start()  # Zavolání start metody pro každé zařízení
+
+    async_add_entities(entities)
+    return True
 
 class DeltaInverterSensor(Entity):
-    """Sensor class for Delta Inverter."""
     def __init__(self, device, measurement):
         self._device = device
         self._measurement = measurement
@@ -46,251 +32,88 @@ class DeltaInverterSensor(Entity):
 
     @property
     def name(self):
-        """Return the name of the sensor."""
         return f"{self._device.name} {self._measurement}"
 
     @property
     def state(self):
-        """Return the state of the sensor."""
         return self._state
 
     @property
     def extra_state_attributes(self):
-        """Return other attributes of the sensor."""
         return self._attributes
 
     def update(self):
-        """Update the sensor state."""
         data = self._device.get_data()
         self._state = data.get(self._measurement)
+        self._attributes = data
 
 class DeltaInverterDevice:
-    """Device class for each inverter."""
     def __init__(self, hass, name, port, baudrate, address, scan_interval):
         self.hass = hass
         self.name = name
         self.port = port
         self.baudrate = baudrate
         self.address = address
+        self.scan_interval = scan_interval
         self.measurements = ['SAP Part Number', 'SAP Serial Number']  # Add all measurements
         self._data = {}
+        self.entities = []
 
+    async def start(self):
+        await self.update_data(None)
         self._interval = async_track_time_interval(
-            self.hass, self.update_data, timedelta(seconds=scan_interval)
+            self.hass, self.update_data, timedelta(seconds=self.scan_interval)
         )
 
-    def calc_crc(self, data):
-        crc = 0x0000
-        for pos in data:
-         crc ^= pos
-         for _ in range(8):
-             if (crc & 0x0001) != 0:
-                 crc >>= 1
-                 crc ^= 0xA001
-             else:
-                 crc >>= 1
-        return crc
-
-
-    def create_query(self, address, command, sub_command, data=b''):
-        stx = 0x02
-        enq = 0x05
-        etx = 0x03
-
-        # Construct the frame without CRC
-        frame = struct.pack('BB', stx, enq) + struct.pack('B', address) + struct.pack('B', len(data) + 2) + struct.pack('B',
-                                                                                                                     command) + struct.pack(
-         'B', sub_command) + data
-
-        # Calculate CRC
-        crc = self.calc_crc(frame[1:])  # Exclude the first byte (STX) from CRC calculation
-        crc_low = crc & 0xFF
-        crc_high = (crc >> 8) & 0xFF
-
-        # Construct the final frame with CRC
-        frame += struct.pack('BB', crc_low, crc_high) + struct.pack('B', etx)
-
-        return frame
-
-
-
-
     def get_data(self):
-        """Fetch data from the hardware."""
         return self._data
 
-    async def update_data(self):
-        """Retrieve data from the inverter."""
-        address = 1
-        command = 96
-        sub_command = 1
+    async def update_data(self, _):
+        _LOGGER.info(f"Updating data for {self.name}")
+        response = await self.hass.async_add_executor_job(self.fetch_data)
+        if response:
+            self._data.update(self.parse_response(response))
+            for entity in self.entities:
+                entity.update()
+            _LOGGER.info("Data updated successfully")
+        else:
+            _LOGGER.error(f"No data received from the device {self.name}")
 
+    def fetch_data(self):
         with serial.Serial(self.port, self.baudrate, timeout=10) as ser:
-            query = self.create_query(address, command, sub_command, b'')
+            query = self.create_query(self.address, 96, 1)
             ser.write(query)
-            return ser.read(200)
+            response = ser.read(200)
+            return response
 
-        parsed_response = self.parse_data(query)
+    def create_query(self, address, command, sub_command, data=b''):
+        stx, enq, etx = 0x02, 0x05, 0x03
+        frame = struct.pack('BB', stx, enq) + struct.pack('B', address)
+        frame += struct.pack('B', len(data) + 2) + struct.pack('B', command)
+        frame += struct.pack('B', sub_command) + data
+        crc = self.calc_crc(frame[1:])  # Exclude the STX from CRC calculation
+        frame += struct.pack('BB', crc & 0xFF, (crc >> 8) & 0xFF) + struct.pack('B', etx)
+        return frame
 
-        # Store it in self._data
-        self._data.update(parsed_response)
+    def calc_crc(self, data):
+        crc = 0xFFFF
+        for byte in data:
+            crc ^= byte
+            for _ in range(8):
+                if crc & 0x0001:
+                    crc >>= 1
+                    crc ^= 0xA001
+                else:
+                    crc >>= 1
+        return crc
 
-
-    def parse_response(self, response):
+    def parse_response(self, data):
         results = {}
-        idx = 6  # Začátek dat za hlavičkou protokolu
+        idx = 6  # Start of data after protocol header
         results['SAP Part Number'] = data[idx:idx+11].decode('utf-8').strip()
         idx += 11
         results['SAP Serial Number'] = data[idx:idx+18].decode('utf-8').strip()
-        idx += 18
-        results['SAP Date Code'] = struct.unpack('>I', data[idx:idx+4])[0]
-        idx += 4
-        results['SAP Revision'] = struct.unpack('>H', data[idx:idx+2])[0]
-        idx += 2
-        results['Software Revision AC Control'] = struct.unpack('>H', data[idx:idx+2])[0]
-        idx += 2
-        results['Software Revision DC Control'] = struct.unpack('>H', data[idx:idx+2])[0]
-        idx += 2
-        results['Software Revision Display'] = struct.unpack('>H', data[idx:idx+2])[0]
-        idx += 2
-        results['Software Revision ENS Control'] = struct.unpack('>H', data[idx:idx+2])[0]
-        idx += 2
-        results['Solar Current at Input 1'] = struct.unpack('>H', data[idx:idx+2])[0] / 10
-        idx += 2
-        results['Solar Voltage at Input 1'] = struct.unpack('>H', data[idx:idx+2])[0] / 10
-        idx += 2
-        results['Solar Isolation Resistance at Input 1'] = struct.unpack('>H', data[idx:idx+2])[0]
-        idx += 2
-        results['Solar Current at Input 2'] = struct.unpack('>H', data[idx:idx+2])[0] / 10
-        idx += 2
-        results['Solar Voltage at Input 2'] = struct.unpack('>H', data[idx:idx+2])[0] / 10
-        idx += 2
-        results['Solar Isolation Resistance at Input 2'] = struct.unpack('>H', data[idx:idx+2])[0]
-        idx += 2
-        results['AC Current'] = struct.unpack('>H', data[idx:idx+2])[0] / 10
-        idx += 2
-        results['AC Voltage'] = struct.unpack('>H', data[idx:idx+2])[0] / 10
-        idx += 2
-        results['AC Power'] = struct.unpack('>H', data[idx:idx+2])[0]
-        idx += 2
-        results['AC Frequency'] = struct.unpack('>H', data[idx:idx+2])[0] / 100
-        idx += 2
-        results['Supplied AC Energy'] = struct.unpack('>I', data[idx:idx+4])[0] / 1000
-        idx += 4
-        results['Inverter Runtime'] = struct.unpack('>I', data[idx:idx+4])[0]
-        idx += 4
-        results['Calculated Temperature at NTC (DC Side)'] = struct.unpack('>H', data[idx:idx+2])[0] / 10
-        idx += 2
-        results['Solar Input 1 MOV Resistance'] = struct.unpack('>H', data[idx:idx+2])[0]
-        idx += 2
-        results['Solar Input 2 MOV Resistance'] = struct.unpack('>H', data[idx:idx+2])[0]
-        idx += 2
-        results['Calculated Temperature at NTC (AC Side)'] = struct.unpack('>H', data[idx:idx+2])[0] / 10
-        idx += 2
-        results['AC Voltage (AC Control)'] = struct.unpack('>H', data[idx:idx+2])[0] / 10
-        idx += 2
-        results['AC Frequency (AC Control)'] = struct.unpack('>H', data[idx:idx+2])[0] / 100
-        idx += 2
-        results['DC Injection Current (AC Control)'] = struct.unpack('>H', data[idx:idx+2])[0]
-        idx += 2
-        results['AC Voltage (ENS Control)'] = struct.unpack('>H', data[idx:idx+2])[0] / 10
-        idx += 2
-        results['AC Frequency (ENS Control)'] = struct.unpack('>H', data[idx:idx+2])[0] / 100
-        idx += 2
-        results['DC Injection Current (ENS Control)'] = struct.unpack('>H', data[idx:idx+2])[0]
-        idx += 2
-        # Maximální proud vstupu Solar 1
-        results['Maximum Solar 1 Input Current'] = struct.unpack('>H', data[idx:idx+2])[0] / 10
-        idx += 2
-        # Maximální napětí vstupu Solar 1
-        results['Maximum Solar 1 Input Voltage'] = struct.unpack('>H', data[idx:idx+2])[0] / 10
-        idx += 2
-        # Maximální výkon vstupu Solar 1
-        results['Maximum Solar 1 Input Power'] = struct.unpack('>H', data[idx:idx+2])[0]
-        idx += 2
-        # Minimální izolační odpor Solar 1
-        results['Minimum Isolation Resistance Solar 1'] = struct.unpack('>H', data[idx:idx+2])[0]
-        idx += 2
-        # Maximální izolační odpor Solar 1
-        results['Maximum Isolation Resistance Solar 1'] = struct.unpack('>H', data[idx:idx+2])[0]
-        idx += 2
-        # Maximální proud vstupu Solar 2
-        results['Maximum Solar 2 Input Current'] = struct.unpack('>H', data[idx:idx+2])[0] / 10
-        idx += 2
-        # Maximální napětí vstupu Solar 2
-        results['Maximum Solar 2 Input Voltage'] = struct.unpack('>H', data[idx:idx+2])[0] / 10
-        idx += 2
-        # Maximální výkon vstupu Solar 2
-        results['Maximum Solar 2 Input Power'] = struct.unpack('>H', data[idx:idx+2])[0]
-        idx += 2
-        # Minimální izolační odpor Solar 2
-        results['Minimum Isolation Resistance Solar 2'] = struct.unpack('>H', data[idx:idx+2])[0]
-        idx += 2
-        # Maximální izolační odpor Solar 2
-        results['Maximum Isolation Resistance Solar 2'] = struct.unpack('>H', data[idx:idx+2])[0]
-        idx += 2
-        # Maximální proud AC dneška
-        results['Maximum AC Current of Today'] = struct.unpack('>H', data[idx:idx+2])[0] / 10
-        idx += 2
-        # Minimální napětí AC dneška
-        results['Minimum AC Voltage of Today'] = struct.unpack('>H', data[idx:idx+2])[0] / 10
-        idx += 2
-        # Maximální napětí AC dneška
-        results['Maximum AC Voltage of Today'] = struct.unpack('>H', data[idx:idx+2])[0] / 10
-        idx += 2
-        # Maximální výkon AC dneška
-        results['Maximum AC Power of Today'] = struct.unpack('>H', data[idx:idx+2])[0]
-        idx += 2
-        # Minimální frekvence AC dneška
-        results['Minimum AC Frequency of Today'] = struct.unpack('>H', data[idx:idx+2])[0] / 100
-        idx += 2
-        # Maximální frekvence AC dneška
-        results['Maximum AC Frequency of Today'] = struct.unpack('>H', data[idx:idx+2])[0] / 100
-        idx += 2
-        # Dodaná energie AC
-        results['Supplied AC Energy'] = struct.unpack('>I', data[idx:idx+4])[0] / 1000
-        idx += 4
-        # Doba provozu invertoru
-        results['Inverter Runtime'] = struct.unpack('>I', data[idx:idx+4])[0]
-        idx += 4
-        # Globální stav poplachu
-        results['Global Alarm Status'] = data[idx]
-        idx += 1
-        # Stav DC vstupu
-        results['Status DC Input'] = data[idx]
-        idx += 1
-        # Limity DC vstupu
-        results['Limits DC Input'] = data[idx]
-        idx += 1
-        # Stav AC výstupu
-        results['Status AC Output'] = data[idx]
-        idx += 1
-        # Limity AC výstupu
-        results['Limits AC Output'] = data[idx]
-        idx += 1
-        # Stav varování izolace
-        results['Isolation Warning Status'] = data[idx]
-        idx += 1
-        # Porucha hardwaru DC
-        results['DC Hardware Failure'] = data[idx]
-        idx += 1
-        # Porucha hardwaru AC
-        results['AC Hardware Failure'] = data[idx]
-        idx += 1
-        # Porucha hardwaru ENS
-        results['ENS Hardware Failure'] = data[idx]
-        idx += 1
-        # Porucha interního bloku
-        results['Internal Bulk Failure'] = data[idx]
-        idx += 1
-        # Porucha interní komunikace
-        results['Internal Communications Failure'] = data[idx]
-        idx += 1
-        # Porucha hardwaru AC
-        results['AC Hardware Disturbance'] = data[idx]
-        idx += 1
-
-        return results     
+        return results
 
 
 
