@@ -1,8 +1,11 @@
 # sensor.py
 from homeassistant.helpers.entity import Entity
+
 import serial
 import struct
 import logging
+import asyncio
+
 
 
 _LOGGER = logging.getLogger(__name__)
