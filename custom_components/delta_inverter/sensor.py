@@ -209,22 +209,21 @@ class DeltaInverterDevice:
 
 
     async def update_data(self, now=None):
-        """Získá data ze zařízení a aktualizuje entity."""
         _LOGGER.debug("Running update_data for %s", self.name)
         data = self.send_query()
         if data is not None:
             _LOGGER.debug("Data received from device: %s", data)
-
             parsed_data = self.parse_data(data)
-
             for entity in self.entities:
-            # Předpokládáme, že entity mají metodu `update_state` očekávající dva argumenty: stav a atributy
-            state = parsed_data.get(entity.measurement)  # získání stavu relevantní pro konkrétní senzor
-            attributes = {"raw_data": data}  # můžete přidat další relevantní atributy
-            entity.update_state(state, attributes)
-            
+                state = parsed_data.get(entity._measurement)
+                attributes = {'last_update': now.isoformat()}  # Přidání dalších atributů podle potřeby
+                entity.update_state(state, attributes)
         else:
             _LOGGER.error("No data received from the device")
+
+
+
+        
 
     def async_will_remove_from_hass(self):
         """Odstranění časovače při odstranění zařízení z HA."""
