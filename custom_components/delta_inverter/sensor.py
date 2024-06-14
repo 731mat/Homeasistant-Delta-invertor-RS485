@@ -87,13 +87,23 @@ class DeltaInverterDevice:
             return response
 
     def create_query(self, address, command, sub_command, data=b''):
-        stx, enq, etx = 0x02, 0x05, 0x03
-        frame = struct.pack('BB', stx, enq) + struct.pack('B', address)
-        frame += struct.pack('B', len(data) + 2) + struct.pack('B', command)
-        frame += struct.pack('B', sub_command) + data
-        crc = self.calc_crc(frame[1:])  # Exclude the STX from CRC calculation
-        frame += struct.pack('BB', crc & 0xFF, (crc >> 8) & 0xFF) + struct.pack('B', etx)
+        stx = 0x02
+        enq = 0x05
+        etx = 0x03
+
+        # Construct the frame without CRC
+        frame = struct.pack('BB', stx, enq) + struct.pack('B', address) + struct.pack('B', len(data) + 2) + struct.pack('B', command) + struct.pack('B', sub_command) + data
+
+        # Calculate CRC
+        crc = self.calc_crc(frame[1:])  # Exclude the first byte (STX) from CRC calculation
+        crc_low = crc & 0xFF
+        crc_high = (crc >> 8) & 0xFF
+
+        # Construct the final frame with CRC
+        frame += struct.pack('BB', crc_low, crc_high) + struct.pack('B', etx)
+
         return frame
+    
 
     def calc_crc(self, data):
         crc = 0xFFFF
