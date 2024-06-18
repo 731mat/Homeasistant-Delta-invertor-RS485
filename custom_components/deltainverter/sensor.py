@@ -50,14 +50,14 @@ class DeltaInverterDataUpdateCoordinator:
         _LOGGER.debug("Data update coordinator initialized with interval: %s seconds", update_interval)
 
     def _update(self):
-        _LOGGER.debug("Fetching data from URL: %s", url)
+        _LOGGER.debug("Fetching data serial line: %s", self.port)
         try:
             data = self.send_query()
             if data is not None:
                 self._data = data
                 _LOGGER.debug("Data fetched successfully: %s", self._data)
             else:
-                _LOGGER.error("Error fetching data from %s, status code: %s", url, response.status_code)
+                _LOGGER.error("Error fetching data from %s", self.port)
                 self._data = {}
         except Exception as e:
             _LOGGER.error("Exception occurred while fetching data: %s", e)
