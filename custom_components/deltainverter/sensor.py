@@ -3,6 +3,8 @@ import json
 import requests
 from datetime import timedelta
 import voluptuous as vol
+import serial
+import struct
 
 from homeassistant.components.sensor import PLATFORM_SCHEMA
 from homeassistant.helpers.entity import Entity
