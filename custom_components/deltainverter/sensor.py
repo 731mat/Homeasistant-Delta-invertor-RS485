@@ -13,29 +13,32 @@ from .const import DOMAIN, DEFAULT_UPDATE_INTERVAL, ATTRIBUTES
 
 _LOGGER = logging.getLogger(__name__)
 
+CONF_NAME = "name"
+
 PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
-    vol.Required('name'): cv.string,
+    vol.Required(CONF_NAME): cv.string,
     vol.Optional("update_interval", default=DEFAULT_UPDATE_INTERVAL): cv.positive_int,
 })
 
 def setup_platform(hass, config, add_entities, discovery_info=None):
     _LOGGER.debug("Setting up platform with config: %s and discovery_info: %s", config, discovery_info)
-    if discovery_info is not None:
-        config = discovery_info
-
-    name = config.get('name')
+    if discovery_info is None:
+        _LOGGER.error("No configuration data received")
+        return
+    
+    name = discovery_info.get(CONF_NAME)
     if not name:
-        _LOGGER.error("Configuration is missing \'name\'")
+        _LOGGER.error("Configuration is missing CONF_NAME")
         return
 
-    update_interval = config.get("update_interval", DEFAULT_UPDATE_INTERVAL)
+    update_interval = discovery_info.get("update_interval", DEFAULT_UPDATE_INTERVAL)
     coordinator = DeltaInverterDataUpdateCoordinator(update_interval)
     sensors = []
     for attr in ATTRIBUTES:
         sensors.append(DeltaInverterSensor(name, attr, coordinator))
     add_entities(sensors)
     _LOGGER.debug("Platform setup complete with sensors: %s", sensors)
-    
+
 
 class DeltaInverterDataUpdateCoordinator:
     def __init__(self, update_interval):
