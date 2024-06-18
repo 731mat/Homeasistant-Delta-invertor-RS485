@@ -90,12 +90,29 @@ class DeltaInverterDataUpdateCoordinator(DataUpdateCoordinator):
         query = self.create_query(address, command, sub_command, data)
         _LOGGER.debug("XXXXX %s", query)
 
+        
         reader, writer = await serial_asyncio.open_serial_connection(url=self.port, baudrate=self.baudrate, timeout=10)
         try:
             writer.write(query)
             await writer.drain()
-            response = await reader.read(1024)
+
+            response = b''
+            while True:
+                part = await reader.read(1024)  # Čteme po 1024 bytech
+                if not part:
+                    break
+                response += part
+                _LOGGER.debug("Received part: %s", part)
+
+                # Ukončení čtení na základě specifického ukončovacího znaku nebo délky
+                if response.endswith(b'\x03'):  # ETX znak
+                    break
+
+            _LOGGER.debug("Complete response: %s", response)
             return response
+        except Exception as e:
+            _LOGGER.error("Exception occurred while sending query: %s", e)
+            raise
         finally:
             writer.close()
             await writer.wait_closed()
