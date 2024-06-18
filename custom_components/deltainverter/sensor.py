@@ -56,8 +56,9 @@ class DeltaInverterDataUpdateCoordinator:
         try:
             data = self.send_query()
             if data is not None:
-                self._data = data
-                _LOGGER.debug("Data fetched successfully: %s", self._data)
+                _LOGGER.debug("Data fetched successfully: %s", data)
+                self._data = self.parse_data(data)
+                _LOGGER.debug("Data parsed successfully: %s", self._data)
             else:
                 _LOGGER.error("Error fetching data from %s", self.port)
                 self._data = {}
