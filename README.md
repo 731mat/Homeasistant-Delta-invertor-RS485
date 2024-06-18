@@ -1,8 +1,10 @@
-# Home Assistant Custom Component for Delta Inverter
+# Home Assistant Custom Component for Delta Inverter SI5000
 
 
-This custom component for Home Assistant enables integration with the Delta Inverter, allowing you to monitor various parameters such as AC power, solar input, and more directly from your Home Assistant instance.
+[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=rnovacek&repository=homeassistant_cz_energy_spot_prices&category=integration)
 
+
+This is a custom integration for Home Assistant that allows you to monitor and control a Delta Inverter via RS485 communication. The integration reads data from the inverter through a serial connection, processes it, and makes it available as sensors in Home Assistant. Below is a comprehensive guide on how to set up and configure this integration.
 
 ## Features
 
@@ -25,40 +27,14 @@ Before you begin, ensure you have:
 
 ## Installation
 
+1. Copy `custom_components/cz_energy_spot_prices` directory into your `custom_components` in your configuration directory.
+2. Restart Home Assistant
+3. Open Settings -> Devices & Services -> Integration
+4. Search for "Czech Energy Spot Prices" and click the search result
+5. Configure Currency and Unit of energy
+6. Submit
 
-1. **Clone the Repository**
-
-
-   Navigate to your Home Assistant configuration directory and clone this repository into the `custom_components` directory. If the directory does not exist, create it.
-
-
-   ```bash
-   cd /path/to/your/homeassistant/config
-   mkdir -p custom_components
-   cd custom_components
-   git clone https://github.com/yourusername/delta_inverter.git
-   ```
-
-
-2. **Configure the Component**
-
-
-   Add the following lines to your `configuration.yaml` file:
-
-
-   ```yaml
-   sensor:
-     - platform: delta_inverter
-       port: /dev/ttyUSB0
-       baudrate: 9600
-       address: 1
-   ```
-
-
-   Replace `/dev/ttyUSB0` with your inverter's connection port, and adjust other parameters as necessary.
-
-
-## Configuration
+## Configuration FIX 
 
 
 | Parameter | Description                       | Example           |
@@ -67,11 +43,6 @@ Before you begin, ensure you have:
 | `baudrate`| Baud rate for the serial connection. | `9600`          |
 | `address` | The address of the inverter.      | `1`               |
 
-
-## Usage
-
-
-Once installed and configured, the component will automatically fetch data from your Delta Inverter and create sensor entities in Home Assistant. These entities can be used in automation, scripts, or viewed directly in the UI.
 
 
 ## Debugging
@@ -84,7 +55,7 @@ Enable detailed debug logging by adding the following to your `configuration.yam
 logger:
   default: info
   logs:
-    custom_components.delta_inverter: debug
+    custom_components.deltainverter: debug
 ```
 
 
