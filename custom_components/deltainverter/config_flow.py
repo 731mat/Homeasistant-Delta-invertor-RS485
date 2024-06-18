@@ -15,10 +15,10 @@ class DeltaInverterConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         errors = {}
         if user_input is not None:
             _LOGGER.debug("User input received: %s", user_input)
-            return self.async_create_entry(title=user_input[CONF_NAME], data=user_input)
+            return self.async_create_entry(title=user_input['name'], data=user_input)
 
         data_schema = {
-            vol.Required(CONF_NAME, default="Delta Inverter Sensor"): str,
+            vol.Required('name', default="Delta Inverter Sensor"): str,
             vol.Optional("update_interval", default=DEFAULT_UPDATE_INTERVAL): int,
         }
 
