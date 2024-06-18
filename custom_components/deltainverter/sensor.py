@@ -1,14 +1,14 @@
 import logging
 import json
-import requests
 from datetime import timedelta
 import voluptuous as vol
-import serial
+import serial_asyncio
 import struct
+import asyncio
 
 from homeassistant.components.sensor import PLATFORM_SCHEMA
 from homeassistant.helpers.entity import Entity
-from homeassistant.util import Throttle
+from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 import homeassistant.helpers.config_validation as cv
 
 from .const import DOMAIN, DEFAULT_UPDATE_INTERVAL, ATTRIBUTES
@@ -22,40 +22,48 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
     vol.Optional("update_interval", default=DEFAULT_UPDATE_INTERVAL): cv.positive_int,
 })
 
-def setup_platform(hass, config, add_entities, discovery_info=None):
+async def async_setup_platform(hass, config, async_add_entities, discovery_info=None):
     _LOGGER.debug("Setting up platform with config: %s and discovery_info: %s", config, discovery_info)
     if discovery_info is None:
         _LOGGER.error("No configuration data received")
         return
-    
+
     name = discovery_info.get(CONF_NAME)
     if not name:
         _LOGGER.error("Configuration is missing CONF_NAME")
         return
 
     update_interval = discovery_info.get("update_interval", DEFAULT_UPDATE_INTERVAL)
-    coordinator = DeltaInverterDataUpdateCoordinator(update_interval)
+    coordinator = DeltaInverterDataUpdateCoordinator(hass, update_interval)
+    await coordinator.async_refresh()
+
     sensors = []
     for attr in ATTRIBUTES:
         sensors.append(DeltaInverterSensor(name, attr, coordinator))
-    add_entities(sensors)
+    async_add_entities(sensors)
     _LOGGER.debug("Platform setup complete with sensors: %s", sensors)
 
 
-class DeltaInverterDataUpdateCoordinator:
-    def __init__(self, update_interval):
-        self._update_interval = timedelta(seconds=update_interval)
+class DeltaInverterDataUpdateCoordinator(DataUpdateCoordinator):
+    def __init__(self, hass, update_interval):
         self._data = {}
-        self.update = Throttle(self._update_interval)(self._update)
         self.port = '/dev/ttyUSB0'
         self.baudrate = 9600
         _LOGGER.debug("Data update coordinator initialized with interval: %s seconds", update_interval)
 
-    def _update(self):
-        _LOGGER.debug("Fetching data serial line: %s", self.port)
+        super().__init__(
+            hass,
+            _LOGGER,
+            name="Delta Inverter",
+            update_method=self._async_update_data,
+            update_interval=timedelta(seconds=update_interval),
+        )
+
+    async def _async_update_data(self):
+        _LOGGER.debug("Fetching data from serial line: %s", self.port)
         try:
-            data = self.send_query()
-            if data is not None:
+            data = await self.async_send_query()
+            if data:
                 _LOGGER.debug("Data fetched successfully: %s", data)
                 self._data = self.parse_data(data)
                 _LOGGER.debug("Data parsed successfully: %s", self._data)
@@ -64,66 +72,60 @@ class DeltaInverterDataUpdateCoordinator:
                 self._data = {}
         except Exception as e:
             _LOGGER.error("Exception occurred while fetching data: %s", e)
-            self._data = {}
+            raise UpdateFailed(f"Error updating data: {e}")
 
     def get_data(self, attribute):
         _LOGGER.debug("Getting data for attribute: %s", attribute)
-        self.update()
         data = self._data.get(attribute, None)
         _LOGGER.debug("Data for %s: %s", attribute, data)
         return data
 
+    async def async_send_query(self):
+        address = 1
+        command = 96
+        sub_command = 1
+        data = b''
+
+        reader, writer = await serial_asyncio.open_serial_connection(url=self.port, baudrate=self.baudrate)
+        try:
+            query = self.create_query(address, command, sub_command, data)
+            writer.write(query)
+            await writer.drain()
+            response = await reader.read(200)
+            return response
+        finally:
+            writer.close()
+            await writer.wait_closed()
 
     def calc_crc(self, data):
         crc = 0x0000
         for pos in data:
             crc ^= pos
             for _ in range(8):
-                if (crc & 0x0001) != 0:
+                if crc & 0x0001:
                     crc >>= 1
                     crc ^= 0xA001
                 else:
                     crc >>= 1
         return crc
 
-
     def create_query(self, address, command, sub_command, data=b''):
         stx = 0x02
         enq = 0x05
         etx = 0x03
 
-        # Construct the frame without CRC
-        frame = struct.pack('BB', stx, enq) + struct.pack('B', address) + struct.pack('B', len(data) + 2) + struct.pack('B',
-                                                                                                                        command) + struct.pack(
-            'B', sub_command) + data
+        frame = struct.pack('BB', stx, enq) + struct.pack('B', address) + struct.pack('B', len(data) + 2) + struct.pack('B', command) + struct.pack('B', sub_command) + data
 
-        # Calculate CRC
-        crc = self.calc_crc(frame[1:])  # Exclude the first byte (STX) from CRC calculation
+        crc = self.calc_crc(frame[1:])
         crc_low = crc & 0xFF
         crc_high = (crc >> 8) & 0xFF
 
-        # Construct the final frame with CRC
         frame += struct.pack('BB', crc_low, crc_high) + struct.pack('B', etx)
-
         return frame
 
-
-    def send_query(self):
-
-        address = 1
-        command = 96
-        sub_command = 1
-        data=b''
-
-        with serial.Serial(self.port, self.baudrate, timeout=10) as ser:
-            query = self.create_query(address, command, sub_command, data)
-            ser.write(query)
-            return ser.read(200)
-                
-
-    def parse_data(self,data):
+    def parse_data(self, data):
         results = {}
-        idx = 6  # Začátek dat za hlavičkou protokolu
+        idx = 6  # Start of data after protocol header
         results['sap_part_number'] = data[idx:idx+11].decode('utf-8').strip()
         idx += 11
         results['sap_serial_number'] = data[idx:idx+18].decode('utf-8').strip()
@@ -246,6 +248,7 @@ class DeltaInverterDataUpdateCoordinator:
         idx += 1
         return results     
 
+
 class DeltaInverterSensor(Entity):
     def __init__(self, name, attribute, coordinator):
         self._name = f"{name} {ATTRIBUTES[attribute]['friendly_name']}"
@@ -260,11 +263,6 @@ class DeltaInverterSensor(Entity):
     def unique_id(self):
         return self._unique_id
 
-    #@property
-    #def unique_id(self):
-    #    # Mělo by být unikátní ID pro každou entitu
-    #    return f"{self.entity_id}_{self._attribute}"
-        
     @property
     def name(self):
         return self._name
@@ -277,9 +275,9 @@ class DeltaInverterSensor(Entity):
     def unit_of_measurement(self):
         return ATTRIBUTES[self._attribute]["unit_of_measurement"]
 
-    def update(self):
+    async def async_update(self):
         _LOGGER.debug("Updating sensor: %s", self._name)
-        self._state = self._coordinator.get_data(self._attribute)
+        self._state = await self._coordinator.async_get_data(self._attribute)
         _LOGGER.debug("Updated state for %s: %s", self._name, self._state)
 
     @property
@@ -291,8 +289,7 @@ class DeltaInverterSensor(Entity):
             "model": "Inverter Model",
             "entry_type": "service",
             "configuration_url": "https://ha.matyho.cz/config/integrations/integration/deltainverter",
-        }    
-
+        }
 
 
 

@@ -4,14 +4,14 @@ DOMAIN = "deltainverter"
 DEFAULT_UPDATE_INTERVAL = 20
 
 ATTRIBUTES = {
-    "sap_part_number": {"friendly_name":"SAP Part Number","unit_of_measurement": "", "device_class": None},
-    "sap_serial_number": {"friendly_name":"SAP Serial Number","unit_of_measurement": "", "device_class": None},
-    "sap_date_code": {"friendly_name":"SAP Date Code","unit_of_measurement": "", "device_class": None},
-    "sap_revision": {"friendly_name":"SAP Revision","unit_of_measurement": "", "device_class": None},
-    "software_revision_ac_control": {"friendly_name":"Software Revision AC Control","unit_of_measurement": "", "device_class": None},
-    "software_revision_dc_control": {"friendly_name":"Software Revision DC Control","unit_of_measurement": "", "device_class": None},
-    "software_revision_display": {"friendly_name":"Software Revision Display","unit_of_measurement": "", "device_class": None},
-    "software_revision_ens_control": {"friendly_name":"Software Revision ENS Control","unit_of_measurement": "", "device_class": None},
+    #"sap_part_number": {"friendly_name":"SAP Part Number","unit_of_measurement": "", "device_class": None},
+    #"sap_serial_number": {"friendly_name":"SAP Serial Number","unit_of_measurement": "", "device_class": None},
+    #"sap_date_code": {"friendly_name":"SAP Date Code","unit_of_measurement": "", "device_class": None},
+    #"sap_revision": {"friendly_name":"SAP Revision","unit_of_measurement": "", "device_class": None},
+    #"software_revision_ac_control": {"friendly_name":"Software Revision AC Control","unit_of_measurement": "", "device_class": None},
+    #"software_revision_dc_control": {"friendly_name":"Software Revision DC Control","unit_of_measurement": "", "device_class": None},
+    #"software_revision_display": {"friendly_name":"Software Revision Display","unit_of_measurement": "", "device_class": None},
+    #"software_revision_ens_control": {"friendly_name":"Software Revision ENS Control","unit_of_measurement": "", "device_class": None},
     "solar_current_at_input_1": {"friendly_name":"Solar Current at Input 1","unit_of_measurement": "A", "device_class": "current"},
     "solar_voltage_at_input_1": {"friendly_name":"Solar Voltage at Input 1","unit_of_measurement": "V", "device_class": "voltage"},
     "solar_isolation_resistance_at_input_1": {"friendly_name":"Solar Isolation Resistance at Input 1","unit_of_measurement": "Ω", "device_class": "resistance"},
