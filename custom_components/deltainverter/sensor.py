@@ -94,7 +94,7 @@ class DeltaInverterDataUpdateCoordinator(DataUpdateCoordinator):
         try:
             writer.write(query)
             await writer.drain()
-            response = await reader.read(200)
+            response = await reader.read(1024)
             return response
         finally:
             writer.close()
