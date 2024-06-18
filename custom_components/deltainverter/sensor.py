@@ -45,10 +45,11 @@ class DeltaInverterDataUpdateCoordinator:
         self._update_interval = timedelta(seconds=update_interval)
         self._data = {}
         self.update = Throttle(self._update_interval)(self._update)
+        self.port = '/dev/ttyUSB0'
+        self.baudrate = 9600
         _LOGGER.debug("Data update coordinator initialized with interval: %s seconds", update_interval)
 
     def _update(self):
-        url = "https://matyho.cz/test.txt"
         _LOGGER.debug("Fetching data from URL: %s", url)
         try:
             data = self.send_query()
