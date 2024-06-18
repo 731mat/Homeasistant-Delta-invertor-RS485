@@ -1,129 +1,202 @@
-import asyncio
-from datetime import timedelta
-from homeassistant.helpers.entity import Entity
-from homeassistant.helpers.event import async_track_time_interval
-import serial
-import struct
 import logging
+import json
+import requests
+from datetime import timedelta
+import voluptuous as vol
+
+from homeassistant.components.sensor import PLATFORM_SCHEMA
+from homeassistant.const import CONF_NAME
+from homeassistant.helpers.entity import Entity
+from homeassistant.util import Throttle
+import homeassistant.helpers.config_validation as cv
+
+from .const import DOMAIN, DEFAULT_UPDATE_INTERVAL, ATTRIBUTES
 
 _LOGGER = logging.getLogger(__name__)
 
-async def async_setup_platform(hass, config, async_add_entities, discovery_info=None):
-    if 'delta_inverter' not in hass.data:
-        _LOGGER.error("DeltaInverter data not found in hass.data")
-        return False
+PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
+    vol.Required(CONF_NAME): cv.string,
+    vol.Optional("update_interval", default=DEFAULT_UPDATE_INTERVAL): cv.positive_int,
+})
 
-    entities = []
-    for device_name, device in hass.data['delta_inverter'].items():
-        for measurement in device.measurements:
-            entity = DeltaInverterSensor(device, measurement)
-            entities.append(entity)
-        await device.start()  # Zavolání start metody pro každé zařízení
+def setup_platform(hass, config, add_entities, discovery_info=None):
+    name = config[CONF_NAME]
+    update_interval = config.get("update_interval", DEFAULT_UPDATE_INTERVAL)
+    coordinator = DeltaInverterDataUpdateCoordinator(update_interval)
+    sensors = []
+    for attr in ATTRIBUTES:
+        sensors.append(DeltaInverterSensor(name, attr, coordinator))
+    add_entities(sensors)
 
-    async_add_entities(entities)
-    return True
+class DeltaInverterDataUpdateCoordinator:
+    def __init__(self, update_interval):
+        self._update_interval = timedelta(seconds=update_interval)
+        self._data = {}
+        self.update = Throttle(self._update_interval)(self._update)
+
+    def _update(self):
+        url = "https://matyho.cz/test.txt"
+        response = requests.get(url)
+        if response.status_code == 200:
+            self._data = response.json()
+        else:
+            _LOGGER.error("Error fetching data from %s", url)
+            self._data = {}
+
+    def get_data(self, attribute):
+        self.update()
+        return self._data.get(attribute, None)
 
 class DeltaInverterSensor(Entity):
-    def __init__(self, device, measurement):
-        self._device = device
-        self._measurement = measurement
+    def __init__(self, name, attribute, coordinator):
+        self._name = f"{name} {ATTRIBUTES[attribute]['friendly_name']}"
         self._state = None
-        self._attributes = {}
+        self._attribute = attribute
+        self._coordinator = coordinator
 
     @property
     def name(self):
-        return f"{self._device.name} {self._measurement}"
+        return self._name
 
     @property
     def state(self):
         return self._state
 
     @property
-    def extra_state_attributes(self):
-        return self._attributes
+    def unit_of_measurement(self):
+        return ATTRIBUTES[self._attribute]["unit_of_measurement"]
 
     def update(self):
-        data = self._device.get_data()
-        self._state = data.get(self._measurement)
-        self._attributes = data
+        self._state = self._coordinator.get_data(self._attribute)
 
-class DeltaInverterDevice:
-    def __init__(self, hass, name, port, baudrate, address, scan_interval):
-        self.hass = hass
-        self.name = name
-        self.port = port
-        self.baudrate = baudrate
-        self.address = address
-        self.scan_interval = scan_interval
-        self.measurements = ['SAP Part Number', 'SAP Serial Number']  # Add all measurements
-        self._data = {}
-        self.entities = []
 
-    async def start(self):
-        await self.update_data(None)
-        self._interval = async_track_time_interval(
-            self.hass, self.update_data, timedelta(seconds=self.scan_interval)
-        )
 
-    def get_data(self):
-        return self._data
+# import asyncio
+# from datetime import timedelta
+# from homeassistant.helpers.entity import Entity
+# from homeassistant.helpers.event import async_track_time_interval
+# import serial
+# import struct
+# import logging
 
-    async def update_data(self, _):
-        _LOGGER.info(f"Updating data for {self.name}")
-        response = await self.hass.async_add_executor_job(self.fetch_data)
-        if response:
-            self._data.update(self.parse_response(response))
-            for entity in self.entities:
-                entity.update()
-            _LOGGER.info("Data updated successfully")
-        else:
-            _LOGGER.error(f"No data received from the device {self.name}")
+# _LOGGER = logging.getLogger(__name__)
 
-    def fetch_data(self):
-        with serial.Serial(self.port, self.baudrate, timeout=10) as ser:
-            query = self.create_query(self.address, 96, 1)
-            ser.write(query)
-            response = ser.read(200)
-            return response
+# async def async_setup_platform(hass, config, async_add_entities, discovery_info=None):
+#     if 'delta_inverter' not in hass.data:
+#         _LOGGER.error("DeltaInverter data not found in hass.data")
+#         return False
 
-    def create_query(self, address, command, sub_command, data=b''):
-        stx = 0x02
-        enq = 0x05
-        etx = 0x03
+#     entities = []
+#     for device_name, device in hass.data['delta_inverter'].items():
+#         for measurement in device.measurements:
+#             entity = DeltaInverterSensor(device, measurement)
+#             entities.append(entity)
+#         await device.start()  # Zavolání start metody pro každé zařízení
 
-        # Construct the frame without CRC
-        frame = struct.pack('BB', stx, enq) + struct.pack('B', address) + struct.pack('B', len(data) + 2) + struct.pack('B', command) + struct.pack('B', sub_command) + data
+#     async_add_entities(entities)
+#     return True
 
-        # Calculate CRC
-        crc = self.calc_crc(frame[1:])  # Exclude the first byte (STX) from CRC calculation
-        crc_low = crc & 0xFF
-        crc_high = (crc >> 8) & 0xFF
+# class DeltaInverterSensor(Entity):
+#     def __init__(self, device, measurement):
+#         self._device = device
+#         self._measurement = measurement
+#         self._state = None
+#         self._attributes = {}
 
-        # Construct the final frame with CRC
-        frame += struct.pack('BB', crc_low, crc_high) + struct.pack('B', etx)
+#     @property
+#     def name(self):
+#         return f"{self._device.name} {self._measurement}"
 
-        return frame
+#     @property
+#     def state(self):
+#         return self._state
+
+#     @property
+#     def extra_state_attributes(self):
+#         return self._attributes
+
+#     def update(self):
+#         data = self._device.get_data()
+#         self._state = data.get(self._measurement)
+#         self._attributes = data
+
+# class DeltaInverterDevice:
+#     def __init__(self, hass, name, port, baudrate, address, scan_interval):
+#         self.hass = hass
+#         self.name = name
+#         self.port = port
+#         self.baudrate = baudrate
+#         self.address = address
+#         self.scan_interval = scan_interval
+#         self.measurements = ['SAP Part Number', 'SAP Serial Number']  # Add all measurements
+#         self._data = {}
+#         self.entities = []
+
+#     async def start(self):
+#         await self.update_data(None)
+#         self._interval = async_track_time_interval(
+#             self.hass, self.update_data, timedelta(seconds=self.scan_interval)
+#         )
+
+#     def get_data(self):
+#         return self._data
+
+#     async def update_data(self, _):
+#         _LOGGER.info(f"Updating data for {self.name}")
+#         response = await self.hass.async_add_executor_job(self.fetch_data)
+#         if response:
+#             self._data.update(self.parse_response(response))
+#             for entity in self.entities:
+#                 entity.update()
+#             _LOGGER.info("Data updated successfully")
+#         else:
+#             _LOGGER.error(f"No data received from the device {self.name}")
+
+#     def fetch_data(self):
+#         with serial.Serial(self.port, self.baudrate, timeout=10) as ser:
+#             query = self.create_query(self.address, 96, 1)
+#             ser.write(query)
+#             response = ser.read(200)
+#             return response
+
+#     def create_query(self, address, command, sub_command, data=b''):
+#         stx = 0x02
+#         enq = 0x05
+#         etx = 0x03
+
+#         # Construct the frame without CRC
+#         frame = struct.pack('BB', stx, enq) + struct.pack('B', address) + struct.pack('B', len(data) + 2) + struct.pack('B', command) + struct.pack('B', sub_command) + data
+
+#         # Calculate CRC
+#         crc = self.calc_crc(frame[1:])  # Exclude the first byte (STX) from CRC calculation
+#         crc_low = crc & 0xFF
+#         crc_high = (crc >> 8) & 0xFF
+
+#         # Construct the final frame with CRC
+#         frame += struct.pack('BB', crc_low, crc_high) + struct.pack('B', etx)
+
+#         return frame
     
 
-    def calc_crc(self, data):
-        crc = 0xFFFF
-        for byte in data:
-            crc ^= byte
-            for _ in range(8):
-                if crc & 0x0001:
-                    crc >>= 1
-                    crc ^= 0xA001
-                else:
-                    crc >>= 1
-        return crc
+#     def calc_crc(self, data):
+#         crc = 0xFFFF
+#         for byte in data:
+#             crc ^= byte
+#             for _ in range(8):
+#                 if crc & 0x0001:
+#                     crc >>= 1
+#                     crc ^= 0xA001
+#                 else:
+#                     crc >>= 1
+#         return crc
 
-    def parse_response(self, data):
-        results = {}
-        idx = 6  # Start of data after protocol header
-        results['SAP Part Number'] = data[idx:idx+11].decode('utf-8').strip()
-        idx += 11
-        results['SAP Serial Number'] = data[idx:idx+18].decode('utf-8').strip()
-        return results
+#     def parse_response(self, data):
+#         results = {}
+#         idx = 6  # Start of data after protocol header
+#         results['SAP Part Number'] = data[idx:idx+11].decode('utf-8').strip()
+#         idx += 11
+#         results['SAP Serial Number'] = data[idx:idx+18].decode('utf-8').strip()
+#         return results
 
 
 
