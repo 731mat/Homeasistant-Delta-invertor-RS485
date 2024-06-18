@@ -24,8 +24,6 @@ def setup_platform(hass, config, add_entities, discovery_info=None):
     if discovery_info is not None:
         config = discovery_info
 
-    _LOGGER.debug("Config after discovery_info check: %s", config)
-    
     name = config.get(CONF_NAME)
     if not name:
         _LOGGER.error("Configuration is missing CONF_NAME")
@@ -38,6 +36,7 @@ def setup_platform(hass, config, add_entities, discovery_info=None):
         sensors.append(DeltaInverterSensor(name, attr, coordinator))
     add_entities(sensors)
     _LOGGER.debug("Platform setup complete with sensors: %s", sensors)
+    
 
 class DeltaInverterDataUpdateCoordinator:
     def __init__(self, update_interval):

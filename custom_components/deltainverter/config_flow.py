@@ -22,8 +22,6 @@ class DeltaInverterConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             vol.Optional("update_interval", default=DEFAULT_UPDATE_INTERVAL): int,
         }
 
-        _LOGGER.debug("Displaying user input form with schema: %s", data_schema)
-
         return self.async_show_form(
             step_id="user", data_schema=vol.Schema(data_schema), errors=errors
         )
