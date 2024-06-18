@@ -27,25 +27,36 @@ def setup_platform(hass, config, add_entities, discovery_info=None):
     for attr in ATTRIBUTES:
         sensors.append(DeltaInverterSensor(name, attr, coordinator))
     add_entities(sensors)
+    _LOGGER.debug("Platform setup complete with sensors: %s", sensors)
 
 class DeltaInverterDataUpdateCoordinator:
     def __init__(self, update_interval):
         self._update_interval = timedelta(seconds=update_interval)
         self._data = {}
         self.update = Throttle(self._update_interval)(self._update)
+        _LOGGER.debug("Data update coordinator initialized with interval: %s seconds", update_interval)
 
     def _update(self):
         url = "https://matyho.cz/test.txt"
-        response = requests.get(url)
-        if response.status_code == 200:
-            self._data = response.json()
-        else:
-            _LOGGER.error("Error fetching data from %s", url)
+        _LOGGER.debug("Fetching data from URL: %s", url)
+        try:
+            response = requests.get(url)
+            if response.status_code == 200:
+                self._data = response.json()
+                _LOGGER.debug("Data fetched successfully: %s", self._data)
+            else:
+                _LOGGER.error("Error fetching data from %s, status code: %s", url, response.status_code)
+                self._data = {}
+        except Exception as e:
+            _LOGGER.error("Exception occurred while fetching data: %s", e)
             self._data = {}
 
     def get_data(self, attribute):
+        _LOGGER.debug("Getting data for attribute: %s", attribute)
         self.update()
-        return self._data.get(attribute, None)
+        data = self._data.get(attribute, None)
+        _LOGGER.debug("Data for %s: %s", attribute, data)
+        return data
 
 class DeltaInverterSensor(Entity):
     def __init__(self, name, attribute, coordinator):
@@ -53,6 +64,7 @@ class DeltaInverterSensor(Entity):
         self._state = None
         self._attribute = attribute
         self._coordinator = coordinator
+        _LOGGER.debug("Sensor initialized: %s", self._name)
 
     @property
     def name(self):
@@ -67,7 +79,9 @@ class DeltaInverterSensor(Entity):
         return ATTRIBUTES[self._attribute]["unit_of_measurement"]
 
     def update(self):
+        _LOGGER.debug("Updating sensor: %s", self._name)
         self._state = self._coordinator.get_data(self._attribute)
+        _LOGGER.debug("Updated state for %s: %s", self._name, self._state)
 
 
 
