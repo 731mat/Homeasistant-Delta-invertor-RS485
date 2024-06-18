@@ -121,155 +121,125 @@ class DeltaInverterDataUpdateCoordinator:
     def parse_data(self,data):
         results = {}
         idx = 6  # Začátek dat za hlavičkou protokolu
-        results['SAP Part Number'] = data[idx:idx+11].decode('utf-8').strip()
+        results['sap_part_number'] = data[idx:idx+11].decode('utf-8').strip()
         idx += 11
-        results['SAP Serial Number'] = data[idx:idx+18].decode('utf-8').strip()
+        results['sap_serial_number'] = data[idx:idx+18].decode('utf-8').strip()
         idx += 18
-        results['SAP Date Code'] = struct.unpack('>I', data[idx:idx+4])[0]
+        results['sap_date_code'] = struct.unpack('>I', data[idx:idx+4])[0]
         idx += 4
-        results['SAP Revision'] = struct.unpack('>H', data[idx:idx+2])[0]
+        results['sap_revision'] = struct.unpack('>H', data[idx:idx+2])[0]
         idx += 2
-        results['Software Revision AC Control'] = struct.unpack('>H', data[idx:idx+2])[0]
+        results['software_revision_ac_control'] = struct.unpack('>H', data[idx:idx+2])[0]
         idx += 2
-        results['Software Revision DC Control'] = struct.unpack('>H', data[idx:idx+2])[0]
+        results['software_revision_dc_control'] = struct.unpack('>H', data[idx:idx+2])[0]
         idx += 2
-        results['Software Revision Display'] = struct.unpack('>H', data[idx:idx+2])[0]
+        results['software_revision_display'] = struct.unpack('>H', data[idx:idx+2])[0]
         idx += 2
-        results['Software Revision ENS Control'] = struct.unpack('>H', data[idx:idx+2])[0]
+        results['software_revision_ens_control'] = struct.unpack('>H', data[idx:idx+2])[0]
         idx += 2
-        results['Solar Current at Input 1'] = struct.unpack('>H', data[idx:idx+2])[0] / 10
+        results['solar_current_at_input_1'] = struct.unpack('>H', data[idx:idx+2])[0] / 10
         idx += 2
-        results['Solar Voltage at Input 1'] = struct.unpack('>H', data[idx:idx+2])[0] / 10
+        results['solar_voltage_at_input_1'] = struct.unpack('>H', data[idx:idx+2])[0] / 10
         idx += 2
-        results['Solar Isolation Resistance at Input 1'] = struct.unpack('>H', data[idx:idx+2])[0]
+        results['solar_isolation_resistance_at_input_1'] = struct.unpack('>H', data[idx:idx+2])[0]
         idx += 2
-        results['Solar Current at Input 2'] = struct.unpack('>H', data[idx:idx+2])[0] / 10
+        results['solar_current_at_input_2'] = struct.unpack('>H', data[idx:idx+2])[0] / 10
         idx += 2
-        results['Solar Voltage at Input 2'] = struct.unpack('>H', data[idx:idx+2])[0] / 10
+        results['solar_voltage_at_input_2'] = struct.unpack('>H', data[idx:idx+2])[0] / 10
         idx += 2
-        results['Solar Isolation Resistance at Input 2'] = struct.unpack('>H', data[idx:idx+2])[0]
+        results['solar_isolation_resistance_at_input_2'] = struct.unpack('>H', data[idx:idx+2])[0]
         idx += 2
-        results['AC Current'] = struct.unpack('>H', data[idx:idx+2])[0] / 10
+        results['ac_current'] = struct.unpack('>H', data[idx:idx+2])[0] / 10
         idx += 2
-        results['AC Voltage'] = struct.unpack('>H', data[idx:idx+2])[0] / 10
+        results['ac_voltage'] = struct.unpack('>H', data[idx:idx+2])[0] / 10
         idx += 2
-        results['AC Power'] = struct.unpack('>H', data[idx:idx+2])[0]
+        results['ac_power'] = struct.unpack('>H', data[idx:idx+2])[0]
         idx += 2
-        results['AC Frequency'] = struct.unpack('>H', data[idx:idx+2])[0] / 100
+        results['ac_frequency'] = struct.unpack('>H', data[idx:idx+2])[0] / 100
         idx += 2
-        results['Supplied AC Energy'] = struct.unpack('>I', data[idx:idx+4])[0] / 1000
+        results['supplied_ac_energy'] = struct.unpack('>I', data[idx:idx+4])[0] / 1000
         idx += 4
-        results['Inverter Runtime'] = struct.unpack('>I', data[idx:idx+4])[0]
+        results['inverter_runtime'] = struct.unpack('>I', data[idx:idx+4])[0]
         idx += 4
-        results['Calculated Temperature at NTC (DC Side)'] = struct.unpack('>H', data[idx:idx+2])[0] / 10
+        results['calculated_temperature_at_ntc_dc_side'] = struct.unpack('>H', data[idx:idx+2])[0] / 10
         idx += 2
-        results['Solar Input 1 MOV Resistance'] = struct.unpack('>H', data[idx:idx+2])[0]
+        results['solar_input_1_mov_resistance'] = struct.unpack('>H', data[idx:idx+2])[0]
         idx += 2
-        results['Solar Input 2 MOV Resistance'] = struct.unpack('>H', data[idx:idx+2])[0]
+        results['solar_input_2_mov_resistance'] = struct.unpack('>H', data[idx:idx+2])[0]
         idx += 2
-        results['Calculated Temperature at NTC (AC Side)'] = struct.unpack('>H', data[idx:idx+2])[0] / 10
+        results['calculated_temperature_at_ntc_ac_side'] = struct.unpack('>H', data[idx:idx+2])[0] / 10
         idx += 2
-        results['AC Voltage (AC Control)'] = struct.unpack('>H', data[idx:idx+2])[0] / 10
+        results['ac_voltage_ac_control'] = struct.unpack('>H', data[idx:idx+2])[0] / 10
         idx += 2
-        results['AC Frequency (AC Control)'] = struct.unpack('>H', data[idx:idx+2])[0] / 100
+        results['ac_frequency_ac_control'] = struct.unpack('>H', data[idx:idx+2])[0] / 100
         idx += 2
-        results['DC Injection Current (AC Control)'] = struct.unpack('>H', data[idx:idx+2])[0]
+        results['dc_injection_current_ac_control'] = struct.unpack('>H', data[idx:idx+2])[0]
         idx += 2
-        results['AC Voltage (ENS Control)'] = struct.unpack('>H', data[idx:idx+2])[0] / 10
+        results['ac_voltage_ens_control'] = struct.unpack('>H', data[idx:idx+2])[0] / 10
         idx += 2
-        results['AC Frequency (ENS Control)'] = struct.unpack('>H', data[idx:idx+2])[0] / 100
+        results['ac_frequency_ens_control'] = struct.unpack('>H', data[idx:idx+2])[0] / 100
         idx += 2
-        results['DC Injection Current (ENS Control)'] = struct.unpack('>H', data[idx:idx+2])[0]
+        results['dc_injection_current_ens_control'] = struct.unpack('>H', data[idx:idx+2])[0]
         idx += 2
-        # Maximální proud vstupu Solar 1
-        results['Maximum Solar 1 Input Current'] = struct.unpack('>H', data[idx:idx+2])[0] / 10
+        results['maximum_solar_1_input_current'] = struct.unpack('>H', data[idx:idx+2])[0] / 10
         idx += 2
-        # Maximální napětí vstupu Solar 1
-        results['Maximum Solar 1 Input Voltage'] = struct.unpack('>H', data[idx:idx+2])[0] / 10
+        results['maximum_solar_1_input_voltage'] = struct.unpack('>H', data[idx:idx+2])[0] / 10
         idx += 2
-        # Maximální výkon vstupu Solar 1
-        results['Maximum Solar 1 Input Power'] = struct.unpack('>H', data[idx:idx+2])[0]
+        results['maximum_solar_1_input_power'] = struct.unpack('>H', data[idx:idx+2])[0]
         idx += 2
-        # Minimální izolační odpor Solar 1
-        results['Minimum Isolation Resistance Solar 1'] = struct.unpack('>H', data[idx:idx+2])[0]
+        results['minimum_isolation_resistance_solar_1'] = struct.unpack('>H', data[idx:idx+2])[0]
         idx += 2
-        # Maximální izolační odpor Solar 1
-        results['Maximum Isolation Resistance Solar 1'] = struct.unpack('>H', data[idx:idx+2])[0]
+        results['maximum_isolation_resistance_solar_1'] = struct.unpack('>H', data[idx:idx+2])[0]
         idx += 2
-        # Maximální proud vstupu Solar 2
-        results['Maximum Solar 2 Input Current'] = struct.unpack('>H', data[idx:idx+2])[0] / 10
+        results['maximum_solar_2_input_current'] = struct.unpack('>H', data[idx:idx+2])[0] / 10
         idx += 2
-        # Maximální napětí vstupu Solar 2
-        results['Maximum Solar 2 Input Voltage'] = struct.unpack('>H', data[idx:idx+2])[0] / 10
+        results['maximum_solar_2_input_voltage'] = struct.unpack('>H', data[idx:idx+2])[0] / 10
         idx += 2
-        # Maximální výkon vstupu Solar 2
-        results['Maximum Solar 2 Input Power'] = struct.unpack('>H', data[idx:idx+2])[0]
+        results['maximum_solar_2_input_power'] = struct.unpack('>H', data[idx:idx+2])[0]
         idx += 2
-        # Minimální izolační odpor Solar 2
-        results['Minimum Isolation Resistance Solar 2'] = struct.unpack('>H', data[idx:idx+2])[0]
+        results['minimum_isolation_resistance_solar_2'] = struct.unpack('>H', data[idx:idx+2])[0]
         idx += 2
-        # Maximální izolační odpor Solar 2
-        results['Maximum Isolation Resistance Solar 2'] = struct.unpack('>H', data[idx:idx+2])[0]
+        results['maximum_isolation_resistance_solar_2'] = struct.unpack('>H', data[idx:idx+2])[0]
         idx += 2
-        # Maximální proud AC dneška
-        results['Maximum AC Current of Today'] = struct.unpack('>H', data[idx:idx+2])[0] / 10
+        results['maximum_ac_current_of_today'] = struct.unpack('>H', data[idx:idx+2])[0] / 10
         idx += 2
-        # Minimální napětí AC dneška
-        results['Minimum AC Voltage of Today'] = struct.unpack('>H', data[idx:idx+2])[0] / 10
+        results['minimum_ac_voltage_of_today'] = struct.unpack('>H', data[idx:idx+2])[0] / 10
         idx += 2
-        # Maximální napětí AC dneška
-        results['Maximum AC Voltage of Today'] = struct.unpack('>H', data[idx:idx+2])[0] / 10
+        results['maximum_ac_voltage_of_today'] = struct.unpack('>H', data[idx:idx+2])[0] / 10
         idx += 2
-        # Maximální výkon AC dneška
-        results['Maximum AC Power of Today'] = struct.unpack('>H', data[idx:idx+2])[0]
+        results['maximum_ac_power_of_today'] = struct.unpack('>H', data[idx:idx+2])[0]
         idx += 2
-        # Minimální frekvence AC dneška
-        results['Minimum AC Frequency of Today'] = struct.unpack('>H', data[idx:idx+2])[0] / 100
+        results['minimum_ac_frequency_of_today'] = struct.unpack('>H', data[idx:idx+2])[0] / 100
         idx += 2
-        # Maximální frekvence AC dneška
-        results['Maximum AC Frequency of Today'] = struct.unpack('>H', data[idx:idx+2])[0] / 100
+        results['maximum_ac_frequency_of_today'] = struct.unpack('>H', data[idx:idx+2])[0] / 100
         idx += 2
-        # Dodaná energie AC
-        results['Supplied AC Energy'] = struct.unpack('>I', data[idx:idx+4])[0] / 1000
+        results['supplied_ac_energy'] = struct.unpack('>I', data[idx:idx+4])[0] / 1000
         idx += 4
-        # Doba provozu invertoru
-        results['Inverter Runtime'] = struct.unpack('>I', data[idx:idx+4])[0]
+        results['inverter_runtime'] = struct.unpack('>I', data[idx:idx+4])[0]
         idx += 4
-        # Globální stav poplachu
-        results['Global Alarm Status'] = data[idx]
+        results['global_alarm_status'] = data[idx]
         idx += 1
-        # Stav DC vstupu
-        results['Status DC Input'] = data[idx]
+        results['status_dc_input'] = data[idx]
         idx += 1
-        # Limity DC vstupu
-        results['Limits DC Input'] = data[idx]
+        results['limits_dc_input'] = data[idx]
         idx += 1
-        # Stav AC výstupu
-        results['Status AC Output'] = data[idx]
+        results['status_ac_output'] = data[idx]
         idx += 1
-        # Limity AC výstupu
-        results['Limits AC Output'] = data[idx]
+        results['limits_ac_output'] = data[idx]
         idx += 1
-        # Stav varování izolace
-        results['Isolation Warning Status'] = data[idx]
+        results['isolation_warning_status'] = data[idx]
         idx += 1
-        # Porucha hardwaru DC
-        results['DC Hardware Failure'] = data[idx]
+        results['dc_hardware_failure'] = data[idx]
         idx += 1
-        # Porucha hardwaru AC
-        results['AC Hardware Failure'] = data[idx]
+        results['ac_hardware_failure'] = data[idx]
         idx += 1
-        # Porucha hardwaru ENS
-        results['ENS Hardware Failure'] = data[idx]
+        results['ens_hardware_failure'] = data[idx]
         idx += 1
-        # Porucha interního bloku
-        results['Internal Bulk Failure'] = data[idx]
+        results['internal_bulk_failure'] = data[idx]
         idx += 1
-        # Porucha interní komunikace
-        results['Internal Communications Failure'] = data[idx]
+        results['internal_communications_failure'] = data[idx]
         idx += 1
-        # Porucha hardwaru AC
-        results['AC Hardware Disturbance'] = data[idx]
+        results['ac_hardware_disturbance'] = data[idx]
         idx += 1
         return results     
 
