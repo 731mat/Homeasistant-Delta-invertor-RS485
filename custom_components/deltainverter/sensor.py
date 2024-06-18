@@ -75,8 +75,14 @@ class DeltaInverterSensor(Entity):
         self._state = None
         self._attribute = attribute
         self._coordinator = coordinator
+        self.entity_id = f"sensor.{name.lower().replace(' ', '_')}_{attribute}"
         _LOGGER.debug("Sensor initialized: %s", self._name)
 
+    @property
+    def unique_id(self):
+        # Mělo by být unikátní ID pro každou entitu
+        return f"{self.entity_id}_{self._attribute}"
+        
     @property
     def name(self):
         return self._name
