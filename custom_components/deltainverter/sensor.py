@@ -100,6 +100,17 @@ class DeltaInverterSensor(Entity):
         self._state = self._coordinator.get_data(self._attribute)
         _LOGGER.debug("Updated state for %s: %s", self._name, self._state)
 
+    @property
+    def device_info(self):
+        return {
+            "identifiers": {(DOMAIN, self.unique_id)},
+            "name": self.name,
+            "manufacturer": "Delta",
+            "model": "Inverter Model",
+            "entry_type": "service",
+            "configuration_url": "https://ha.matyho.cz/config/integrations/integration/deltainverter",
+        }    
+
 
 
 
