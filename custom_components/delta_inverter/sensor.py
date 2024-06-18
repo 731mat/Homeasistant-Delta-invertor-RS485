@@ -24,7 +24,11 @@ def setup_platform(hass, config, add_entities, discovery_info=None):
     if discovery_info is not None:
         config = discovery_info
 
-    name = config[CONF_NAME]
+    name = config.get(CONF_NAME)
+    if not name:
+        _LOGGER.error("Configuration is missing CONF_NAME")
+        return
+
     update_interval = config.get("update_interval", DEFAULT_UPDATE_INTERVAL)
     coordinator = DeltaInverterDataUpdateCoordinator(update_interval)
     sensors = []
@@ -86,6 +90,7 @@ class DeltaInverterSensor(Entity):
         _LOGGER.debug("Updating sensor: %s", self._name)
         self._state = self._coordinator.get_data(self._attribute)
         _LOGGER.debug("Updated state for %s: %s", self._name, self._state)
+
 
 
 # import asyncio
