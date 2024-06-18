@@ -87,11 +87,12 @@ class DeltaInverterDataUpdateCoordinator(DataUpdateCoordinator):
         sub_command = 1
         data = b''
 
-        reader, writer = await serial_asyncio.open_serial_connection(url=self.port, baudrate=self.baudrate)
+        query = self.create_query(address, command, sub_command, data)
+        _LOGGER.debug("XXXXX %s", query)
+
+        reader, writer = await serial_asyncio.open_serial_connection(url=self.port, baudrate=self.baudrate, timeout=10)
         try:
-            query = self.create_query(address, command, sub_command, data)
             writer.write(query)
-            _LOGGER.debug("XXXXX %s", query)
             await writer.drain()
             response = await reader.read(200)
             return response
