@@ -12,6 +12,7 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 import homeassistant.helpers.config_validation as cv
 
 from .const import DOMAIN, DEFAULT_UPDATE_INTERVAL, ATTRIBUTES
+from .data_parser import parse_data
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -65,7 +66,7 @@ class DeltaInverterDataUpdateCoordinator(DataUpdateCoordinator):
             data = await self.async_send_query()
             if data:
                 _LOGGER.debug("Data fetched successfully: %s", data)
-                self._data = self.parse_data(data)
+                self._data = parse_data(data)
                 _LOGGER.debug("Data parsed successfully: %s", self._data)
             else:
                 _LOGGER.error("Error fetching data from %s", self.port)
@@ -89,6 +90,7 @@ class DeltaInverterDataUpdateCoordinator(DataUpdateCoordinator):
         reader, writer = await serial_asyncio.open_serial_connection(url=self.port, baudrate=self.baudrate)
         try:
             query = self.create_query(address, command, sub_command, data)
+            _LOGGER.debug("XXXXX %s", query)
             writer.write(query)
             await writer.drain()
             response = await reader.read(200)
@@ -123,131 +125,6 @@ class DeltaInverterDataUpdateCoordinator(DataUpdateCoordinator):
         frame += struct.pack('BB', crc_low, crc_high) + struct.pack('B', etx)
         return frame
 
-    def parse_data(self, data):
-        results = {}
-        idx = 6  # Start of data after protocol header
-        results['sap_part_number'] = data[idx:idx+11].decode('utf-8').strip()
-        idx += 11
-        results['sap_serial_number'] = data[idx:idx+18].decode('utf-8').strip()
-        idx += 18
-        results['sap_date_code'] = struct.unpack('>I', data[idx:idx+4])[0]
-        idx += 4
-        results['sap_revision'] = struct.unpack('>H', data[idx:idx+2])[0]
-        idx += 2
-        results['software_revision_ac_control'] = struct.unpack('>H', data[idx:idx+2])[0]
-        idx += 2
-        results['software_revision_dc_control'] = struct.unpack('>H', data[idx:idx+2])[0]
-        idx += 2
-        results['software_revision_display'] = struct.unpack('>H', data[idx:idx+2])[0]
-        idx += 2
-        results['software_revision_ens_control'] = struct.unpack('>H', data[idx:idx+2])[0]
-        idx += 2
-        results['solar_current_at_input_1'] = struct.unpack('>H', data[idx:idx+2])[0] / 10
-        idx += 2
-        results['solar_voltage_at_input_1'] = struct.unpack('>H', data[idx:idx+2])[0] / 10
-        idx += 2
-        results['solar_isolation_resistance_at_input_1'] = struct.unpack('>H', data[idx:idx+2])[0]
-        idx += 2
-        results['solar_current_at_input_2'] = struct.unpack('>H', data[idx:idx+2])[0] / 10
-        idx += 2
-        results['solar_voltage_at_input_2'] = struct.unpack('>H', data[idx:idx+2])[0] / 10
-        idx += 2
-        results['solar_isolation_resistance_at_input_2'] = struct.unpack('>H', data[idx:idx+2])[0]
-        idx += 2
-        results['ac_current'] = struct.unpack('>H', data[idx:idx+2])[0] / 10
-        idx += 2
-        results['ac_voltage'] = struct.unpack('>H', data[idx:idx+2])[0] / 10
-        idx += 2
-        results['ac_power'] = struct.unpack('>H', data[idx:idx+2])[0]
-        idx += 2
-        results['ac_frequency'] = struct.unpack('>H', data[idx:idx+2])[0] / 100
-        idx += 2
-        results['supplied_ac_energy'] = struct.unpack('>I', data[idx:idx+4])[0] / 1000
-        idx += 4
-        results['inverter_runtime'] = struct.unpack('>I', data[idx:idx+4])[0]
-        idx += 4
-        results['calculated_temperature_at_ntc_dc_side'] = struct.unpack('>H', data[idx:idx+2])[0] / 10
-        idx += 2
-        results['solar_input_1_mov_resistance'] = struct.unpack('>H', data[idx:idx+2])[0]
-        idx += 2
-        results['solar_input_2_mov_resistance'] = struct.unpack('>H', data[idx:idx+2])[0]
-        idx += 2
-        results['calculated_temperature_at_ntc_ac_side'] = struct.unpack('>H', data[idx:idx+2])[0] / 10
-        idx += 2
-        results['ac_voltage_ac_control'] = struct.unpack('>H', data[idx:idx+2])[0] / 10
-        idx += 2
-        results['ac_frequency_ac_control'] = struct.unpack('>H', data[idx:idx+2])[0] / 100
-        idx += 2
-        results['dc_injection_current_ac_control'] = struct.unpack('>H', data[idx:idx+2])[0]
-        idx += 2
-        results['ac_voltage_ens_control'] = struct.unpack('>H', data[idx:idx+2])[0] / 10
-        idx += 2
-        results['ac_frequency_ens_control'] = struct.unpack('>H', data[idx:idx+2])[0] / 100
-        idx += 2
-        results['dc_injection_current_ens_control'] = struct.unpack('>H', data[idx:idx+2])[0]
-        idx += 2
-        results['maximum_solar_1_input_current'] = struct.unpack('>H', data[idx:idx+2])[0] / 10
-        idx += 2
-        results['maximum_solar_1_input_voltage'] = struct.unpack('>H', data[idx:idx+2])[0] / 10
-        idx += 2
-        results['maximum_solar_1_input_power'] = struct.unpack('>H', data[idx:idx+2])[0]
-        idx += 2
-        results['minimum_isolation_resistance_solar_1'] = struct.unpack('>H', data[idx:idx+2])[0]
-        idx += 2
-        results['maximum_isolation_resistance_solar_1'] = struct.unpack('>H', data[idx:idx+2])[0]
-        idx += 2
-        results['maximum_solar_2_input_current'] = struct.unpack('>H', data[idx:idx+2])[0] / 10
-        idx += 2
-        results['maximum_solar_2_input_voltage'] = struct.unpack('>H', data[idx:idx+2])[0] / 10
-        idx += 2
-        results['maximum_solar_2_input_power'] = struct.unpack('>H', data[idx:idx+2])[0]
-        idx += 2
-        results['minimum_isolation_resistance_solar_2'] = struct.unpack('>H', data[idx:idx+2])[0]
-        idx += 2
-        results['maximum_isolation_resistance_solar_2'] = struct.unpack('>H', data[idx:idx+2])[0]
-        idx += 2
-        results['maximum_ac_current_of_today'] = struct.unpack('>H', data[idx:idx+2])[0] / 10
-        idx += 2
-        results['minimum_ac_voltage_of_today'] = struct.unpack('>H', data[idx:idx+2])[0] / 10
-        idx += 2
-        results['maximum_ac_voltage_of_today'] = struct.unpack('>H', data[idx:idx+2])[0] / 10
-        idx += 2
-        results['maximum_ac_power_of_today'] = struct.unpack('>H', data[idx:idx+2])[0]
-        idx += 2
-        results['minimum_ac_frequency_of_today'] = struct.unpack('>H', data[idx:idx+2])[0] / 100
-        idx += 2
-        results['maximum_ac_frequency_of_today'] = struct.unpack('>H', data[idx:idx+2])[0] / 100
-        idx += 2
-        results['supplied_ac_energy'] = struct.unpack('>I', data[idx:idx+4])[0] / 1000
-        idx += 4
-        results['inverter_runtime'] = struct.unpack('>I', data[idx:idx+4])[0]
-        idx += 4
-        results['global_alarm_status'] = data[idx]
-        idx += 1
-        results['status_dc_input'] = data[idx]
-        idx += 1
-        results['limits_dc_input'] = data[idx]
-        idx += 1
-        results['status_ac_output'] = data[idx]
-        idx += 1
-        results['limits_ac_output'] = data[idx]
-        idx += 1
-        results['isolation_warning_status'] = data[idx]
-        idx += 1
-        results['dc_hardware_failure'] = data[idx]
-        idx += 1
-        results['ac_hardware_failure'] = data[idx]
-        idx += 1
-        results['ens_hardware_failure'] = data[idx]
-        idx += 1
-        results['internal_bulk_failure'] = data[idx]
-        idx += 1
-        results['internal_communications_failure'] = data[idx]
-        idx += 1
-        results['ac_hardware_disturbance'] = data[idx]
-        idx += 1
-        return results     
-
 
 class DeltaInverterSensor(Entity):
     def __init__(self, name, attribute, coordinator):
@@ -277,7 +154,7 @@ class DeltaInverterSensor(Entity):
 
     async def async_update(self):
         _LOGGER.debug("Updating sensor: %s", self._name)
-        self._state = await self._coordinator.async_get_data(self._attribute)
+        self._state = self._coordinator.get_data(self._attribute)
         _LOGGER.debug("Updated state for %s: %s", self._name, self._state)
 
     @property
@@ -290,8 +167,6 @@ class DeltaInverterSensor(Entity):
             "entry_type": "service",
             "configuration_url": "https://ha.matyho.cz/config/integrations/integration/deltainverter",
         }
-
-
 
 # import asyncio
 # from datetime import timedelta
