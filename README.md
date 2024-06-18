@@ -1,7 +1,7 @@
 # Home Assistant Custom Component for Delta Inverter SI5000
 
 
-[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=rnovacek&repository=homeassistant_cz_energy_spot_prices&category=integration)
+[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=731mat&repository=Homeasistant-Delta-invertor-RS485&category=integration)
 
 
 This is a custom integration for Home Assistant that allows you to monitor and control a Delta Inverter via RS485 communication. The integration reads data from the inverter through a serial connection, processes it, and makes it available as sensors in Home Assistant. Below is a comprehensive guide on how to set up and configure this integration.
