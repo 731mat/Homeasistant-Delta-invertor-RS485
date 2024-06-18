@@ -1,3 +1,5 @@
+from homeassistant.const import CONF_NAME
+
 DOMAIN = "deltainverter"
 DEFAULT_UPDATE_INTERVAL = 20
 

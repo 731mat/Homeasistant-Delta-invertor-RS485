@@ -88,7 +88,6 @@ class DeltaInverterSensor(Entity):
         _LOGGER.debug("Updated state for %s: %s", self._name, self._state)
 
 
-
 # import asyncio
 # from datetime import timedelta
 # from homeassistant.helpers.entity import Entity
