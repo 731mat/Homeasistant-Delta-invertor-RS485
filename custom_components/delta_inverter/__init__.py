@@ -18,3 +18,4 @@ async def async_setup_entry(hass, entry):
 async def async_unload_entry(hass, entry):
     _LOGGER.debug("Unloading entry for Delta Inverter integration")
     return True
+

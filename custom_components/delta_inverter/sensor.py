@@ -20,6 +20,10 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
 })
 
 def setup_platform(hass, config, add_entities, discovery_info=None):
+    _LOGGER.debug("Setting up platform with config: %s and discovery_info: %s", config, discovery_info)
+    if discovery_info is not None:
+        config = discovery_info
+
     name = config[CONF_NAME]
     update_interval = config.get("update_interval", DEFAULT_UPDATE_INTERVAL)
     coordinator = DeltaInverterDataUpdateCoordinator(update_interval)
